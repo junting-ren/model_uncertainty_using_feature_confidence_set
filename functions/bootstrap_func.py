@@ -2,7 +2,7 @@
 # Functions for bootstrap
 ################################
 import numpy as np
-import functions/neural_net_func 
+import neural_net_func 
 
 def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
     '''Function for fittting the model and bootstrap 
@@ -49,9 +49,6 @@ def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
         a matrix containing the bootstraped predicted mean, with rows indicting the sample index, 
         the columns indicating the bootstrap index, numpy array of (n_boot, X_test.shape[0])
     '''
-    model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size)
-    mean = neural_net_func.nn_fit_predict(model, y, X, X_test, n_iter = n_iter, lr = lr, device = device,  
-                          patience = patience, weight_decay = weight_decay)
     mean_boot_l = []
     for i in range(n_boot):
         index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
@@ -62,4 +59,5 @@ def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
                           patience = patience, weight_decay = weight_decay) )
     mean_boot_l = np.array(mean_boot_l)
     se = np.std(mean_boot_l, axis = 0)
+    mean = np.mean(mean_boot_l, axis = 0)
     return mean, se, mean_boot_l    

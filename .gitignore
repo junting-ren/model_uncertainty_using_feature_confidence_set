@@ -1,3 +1,12 @@
 *.csv
 fig_results/
 sim_results/
+*.png
+*.csv
+dataset/
+**/*.pyc
+**/.ipynb_checkpoints
+.ipynb_checkpoints
+results/
+functions/.DS_Store
+functions/.ipynb_checkpoints/main_NN-checkpoint.py
