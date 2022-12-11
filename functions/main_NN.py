@@ -10,7 +10,7 @@ import NN_sim_func
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-file_name = 'sim_NN_results_average'+date+'.csv'
+file_name = 'sim_NN_results_no_penal'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
     n_sim = 500
@@ -25,7 +25,7 @@ if __name__ ==  '__main__':
     lr_v = [0.01]
     device_v = ['cpu']
     patience_v = [10]
-    weight_decay_v = [0.1]
+    weight_decay_v = [0]
     L_v = [0.95]
     level_v = [None]
     use_true_contour_v = [False]
