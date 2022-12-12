@@ -10,7 +10,7 @@ import NN_sim_func
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-file_name = 'sim_NN_results_no_penal'+date+'.csv'
+file_name = 'sim_NN_results_no_penal_mean_predict'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
     n_sim = 500
