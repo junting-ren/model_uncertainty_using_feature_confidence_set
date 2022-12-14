@@ -14,9 +14,9 @@ file_name = 'sim_NN_results_no_penal_mean_predict'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
     n_sim = 500
-    N_v = [50]
+    N_v = [50,100,200]
     N_test_v = [500]
-    p_v = [2]
+    p_v = [2,4]
     error_sd_v = [1]
     transform_func_v = [NN_sim_func.transform_X]
     h_sizes_v = [[10,50,10]]
