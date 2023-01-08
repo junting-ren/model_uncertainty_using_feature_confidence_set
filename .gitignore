@@ -10,3 +10,6 @@ dataset/
 results/
 functions/.DS_Store
 functions/.ipynb_checkpoints/main_NN-checkpoint.py
+*.pyc
+functions/__pycache__/
+*.pyc
