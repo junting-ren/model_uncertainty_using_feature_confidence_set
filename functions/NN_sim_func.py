@@ -80,7 +80,7 @@ def generate_NN_data(N, N_test, p,  transform_func, beta=None, error_sd = 3, see
 
 def sim_NN(N, N_test, p, error_sd, transform_func, 
            h_sizes, out_size, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0,
-           L = 0.925, level= 0, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False, batchnorm_ind = True):
+           L = 0.925, level= 0, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False, batchnorm_ind = False):
     '''Function for neural network simulation
     
     '''
@@ -103,7 +103,7 @@ def sim_NN(N, N_test, p, error_sd, transform_func,
     
 def safe_sim_NN(N, N_test, p, error_sd, transform_func, 
                 h_sizes, out_size, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0,
-                L = 0.925, level= None, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False,batchnorm_ind = True):
+                L = 0.925, level= None, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False,batchnorm_ind = False):
     try:
         return sim_NN(N, N_test, p, error_sd, transform_func, 
                       h_sizes, out_size, n_iter = n_iter, lr = lr, 
