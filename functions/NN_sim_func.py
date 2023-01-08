@@ -80,7 +80,7 @@ def generate_NN_data(N, N_test, p,  transform_func, beta=None, error_sd = 3, see
 
 def sim_NN(N, N_test, p, error_sd, transform_func, 
            h_sizes, out_size, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0,
-           L = 0.925, level= 0, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False):
+           L = 0.925, level= 0, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False, batchnorm_ind = True):
     '''Function for neural network simulation
     
     '''
@@ -88,7 +88,7 @@ def sim_NN(N, N_test, p, error_sd, transform_func,
     X, y, X_test, y_test, mean_test_true = generate_NN_data(N = N, N_test = N_test, p = p, transform_func = transform_func, error_sd = error_sd, if_tensor = True)
     mean, se, mean_boot_l  = bootstrap_func.fit_bootstrap_NN(y, X, X_test, p, h_sizes, out_size,
                                               n_boot = n_boot, n_iter = n_iter, lr = lr, 
-                                              device = device, patience = patience, weight_decay = weight_decay)
+                                              device = device, patience = patience, weight_decay = weight_decay, batchnorm_ind = batchnorm_ind)
     mae = np.mean(np.abs(mean - mean_test_true))
     #import pdb; pdb.set_trace()
     if level is None:
@@ -103,12 +103,12 @@ def sim_NN(N, N_test, p, error_sd, transform_func,
     
 def safe_sim_NN(N, N_test, p, error_sd, transform_func, 
                 h_sizes, out_size, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0,
-                L = 0.925, level= None, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False):
+                L = 0.925, level= None, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False,batchnorm_ind = True):
     try:
         return sim_NN(N, N_test, p, error_sd, transform_func, 
                       h_sizes, out_size, n_iter = n_iter, lr = lr, 
                       device = device, patience = patience, weight_decay = weight_decay,
                       L = L, level= level, use_true_contour = use_true_contour,
-                      n_boot = n_boot, beta = beta, X_test = X_test,  return_range = return_range)
+                      n_boot = n_boot, beta = beta, X_test = X_test,  return_range = return_range, batchnorm_ind = batchnorm_ind)
     except:
         return -1, N, N_test, p, error_sd, level, use_true_contour, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1,-1,-1

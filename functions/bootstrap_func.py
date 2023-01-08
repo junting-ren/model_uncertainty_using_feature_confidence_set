@@ -33,7 +33,7 @@ def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
 
 
 def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
-                  n_boot = 200, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0):
+                  n_boot = 200, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0, batchnorm_ind = True):
     '''Function for fittting the model and bootstrap 
     Parameters:
     ---------------
@@ -54,7 +54,7 @@ def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
         index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
         y_boot = y[index_boot]
         X_boot = X[index_boot]
-        model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size)
+        model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = batchnorm_ind)
         mean_boot_l.append(neural_net_func.nn_fit_predict(model, y_boot, X_boot, X_test, n_iter = n_iter, lr = lr, device = device,  
                           patience = patience, weight_decay = weight_decay) )
     mean_boot_l = np.array(mean_boot_l)
