@@ -32,7 +32,7 @@ def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
     return mean, se, mean_boot_l
 
 
-def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,F
+def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
                   n_boot = 200, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0, batchnorm_ind = False):
     '''Function for fittting the model and bootstrap 
     Parameters:
