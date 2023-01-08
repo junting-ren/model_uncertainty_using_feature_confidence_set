@@ -13,7 +13,7 @@ date = today.strftime("%d%m%Y")
 file_name = 'sim_NN_results_no_penal_mean_predict'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
-    n_sim = 1
+    n_sim = 100
     N_v = [50,100,200]
     N_test_v = [500]
     p_v = [2,4]
@@ -26,7 +26,7 @@ if __name__ ==  '__main__':
     device_v = ['cpu']
     patience_v = [10]
     weight_decay_v = [0]
-    L_v = [0.95]
+    L_v = [0.9]
     level_v = [None]
     use_true_contour_v = [False]
     n_boot_v = [500]
