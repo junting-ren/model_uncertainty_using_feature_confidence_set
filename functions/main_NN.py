@@ -13,7 +13,7 @@ date = today.strftime("%d%m%Y")
 file_name = 'sim_NN_results_no_penal_mean_predict'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
-    n_sim = 500
+    n_sim = 1
     N_v = [50,100,200]
     N_test_v = [500]
     p_v = [2,4]

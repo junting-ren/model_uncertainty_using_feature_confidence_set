@@ -4,7 +4,7 @@ import numpy as np
 import copy
 
 class FF_neural_net(nn.Module):
-    def __init__(self, input_size, h_sizes, out_size = 1, batch_norm_ind = False):
+    def __init__(self, input_size, h_sizes, out_size = 1, batchnorm_ind = False):
         ''' Initialize the feedfoward neural network
         
         Parameters:
@@ -19,7 +19,7 @@ class FF_neural_net(nn.Module):
         self.relu = nn.ReLU()
         for k in range(len(layer_sizes)-1):
             self.layers.append(nn.Linear(layer_sizes[k], layer_sizes[k+1]).double())
-            if batch_norm_ind and k != len(layer_sizes)-2:
+            if batchnorm_ind and k != len(layer_sizes)-2:
                 self.layers.append(nn.BatchNorm1d(layer_sizes[k+1]).double())
         self.out_layer = nn.Linear(layer_sizes[k+1], out_size).double()
     
