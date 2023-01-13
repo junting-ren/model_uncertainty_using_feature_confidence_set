@@ -4,7 +4,7 @@
 
 import numpy as np
 from scipy.stats import t
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge
 import pandas as pd
 import time
 # custom script functions
@@ -44,11 +44,21 @@ def linear_fit_predict(y, X, X_test, return_X_predict = False):
     else:
         return  reg.predict(X_test)
 
+def ridge_linear_fit_predict(y, X, X_test, penal_size, return_X_predict = False):
+    reg = Ridge(alpha = penal_size).fit(X, y)
+    if return_X_predict:
+        return reg.predict(X_test), reg.predict(X)
+    else:
+        return  reg.predict(X_test)
 
-def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False):
+def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, ridge = False, beta = None, X_test = None,  return_range = False):
     y,X, X_test, mean_test_true = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
-    mean, se, mean_boot_l = bootstrap_func.fit_bootstrap(fit_predict = linear_fit_predict, y = y, 
-                                          X = X, X_test = X_test, n_boot = n_boot)
+    if ridge:
+        mean, se, mean_boot_l = bootstrap_func.fit_bootstrap_ridge(fit_predict = ridge_linear_fit_predict, y = y, 
+                                              X = X, X_test = X_test, n_boot = n_boot,  penal_sizes = [1e-3,1e-2,1e-1,1])
+    else:# linear model without penality
+        mean, se, mean_boot_l = bootstrap_func.fit_bootstrap(fit_predict = linear_fit_predict, y = y, 
+                                              X = X, X_test = X_test, n_boot = n_boot)
     mae = np.mean(np.abs(mean - mean_test_true))
     #import pdb; pdb.set_trace()
     _, L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v,inner_points_num,outer_points_num,true_set_points_num = confidence_set_func.prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = mean_test_true, use_true_contour = use_true_contour)
@@ -57,13 +67,13 @@ def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour 
     if return_range:
         return contain, N, N_test, p, error_sd, level, use_true_contour, contain_scb, contain_CS_scb, L, U, L1, L2, U1, U2, n_points, mae, range_v, inner_points_num,outer_points_num,true_set_points_num
     else:
-        return contain, N, N_test, p, error_sd, level, use_true_contour, contain_scb, contain_CS_scb, L, U, L1, L2, U1, U2, n_points, mae, inner_points_num,outer_points_num,true_set_points_num
+        return contain, contain_scb, contain_CS_scb, L, U, L1, L2, U1, U2, n_points, mae, inner_points_num,outer_points_num,true_set_points_num
     
-def safe_sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, beta = None, X_test = None,  return_range = False):
+def safe_sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, ridge = False, beta = None, X_test = None,  return_range = False):
     try:
-        return sim_linear(N, N_test, p, error_sd, L, level, use_true_contour, n_boot, beta, X_test,  return_range)
+        return sim_linear(N, N_test, p, error_sd, L, level, use_true_contour, n_boot, ridge, beta, X_test,  return_range)
     except:
-        return -1, N, N_test, p, error_sd, level, use_true_contour, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1,-1,-1
+        return -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1,-1,-1
 
     
 def CS_t_test(inner_index, outer_index, X_test):
