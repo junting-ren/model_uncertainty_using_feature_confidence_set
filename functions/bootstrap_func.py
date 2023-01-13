@@ -3,6 +3,7 @@
 ################################
 import numpy as np
 import neural_net_func 
+from sklearn.linear_model import RidgeCV
 
 def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
     '''Function for fittting the model and bootstrap 
@@ -31,6 +32,21 @@ def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
     se = np.std(mean_boot_l, axis = 0)
     return mean, se, mean_boot_l
 
+
+def fit_bootstrap_ridge(fit_predict, y, X, X_test, n_boot = 200,  penal_sizes = [1e-3,1e-2,1e-1,1]):
+    clf = RidgeCV(alphas = penal_sizes, store_cv_values = True).fit(X, y)
+    errors = np.mean(clf.cv_values_, axis = 0)
+    best_penal = penal_sizes[np.argmin(errors)]
+    mean_boot_l = []
+    for i in range(n_boot):
+        index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
+        y_boot = y[index_boot]
+        X_boot = X[index_boot]
+        mean_boot_l.append(fit_predict(y_boot, X_boot, X_test, best_penal) )
+    mean_boot_l = np.array(mean_boot_l)
+    se = np.std(mean_boot_l, axis = 0)
+    mean = np.mean(mean_boot_l, axis = 0)
+    return mean, se, mean_boot_l
 
 def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
                   n_boot = 200, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0, batchnorm_ind = False):
