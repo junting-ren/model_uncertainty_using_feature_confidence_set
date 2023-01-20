@@ -4,8 +4,9 @@
 import numpy as np
 import neural_net_func 
 from sklearn.linear_model import RidgeCV
+import linear_sim_func
 
-def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
+def fit_bootstrap(y, X, X_test, n_boot = 200, smoothed = False, residual_boot = False):
     '''Function for fittting the model and bootstrap 
     Parameters:
     ---------------
@@ -21,31 +22,54 @@ def fit_bootstrap(fit_predict, y, X, X_test, n_boot = 200):
         a matrix containing the bootstraped predicted mean, with rows indicting the sample index, 
         the columns indicating the bootstrap index, numpy array of (n_boot, X_test.shape[0])
     '''
-    mean = fit_predict(y, X, X_test)
     mean_boot_l = []
+    _, mean_train = linear_sim_func.linear_fit_predict(y, X, X_test, return_X_predict = True)
     for i in range(n_boot):
         index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
-        y_boot = y[index_boot]
-        X_boot = X[index_boot]
-        mean_boot_l.append(fit_predict(y_boot, X_boot, X_test) )
+        if residual_boot:
+            residuals = y - mean_train
+            y_boot = mean_train + residuals[index_boot]
+            X_boot = X
+        else:
+            y_boot = y[index_boot]
+            X_boot = X[index_boot]
+        mean_boot_l.append(linear_sim_func.linear_fit_predict(y_boot, X_boot, X_test) )
     mean_boot_l = np.array(mean_boot_l)
+    if smoothed:
+        mean = np.mean(mean_boot_l, axis = 0)
+    else:
+        mean = linear_sim_func.linear_fit_predict(y, X, X_test)
     se = np.std(mean_boot_l, axis = 0)
     return mean, se, mean_boot_l
 
 
-def fit_bootstrap_ridge(fit_predict, y, X, X_test, n_boot = 200,  penal_sizes = [1e-3,1e-2,1e-1,1]):
+def fit_bootstrap_ridge(y, X, X_test, n_boot = 200,  penal_sizes = [1,0.5,1e-1, 1e-2, 1e-3, 1e-4], smoothed = False, residual_boot = False, CV_boot = False):
     clf = RidgeCV(alphas = penal_sizes, store_cv_values = True).fit(X, y)
     errors = np.mean(clf.cv_values_, axis = 0)
-    best_penal = penal_sizes[np.argmin(errors)]
+    penal_size = penal_sizes[np.argmin(errors)]
     mean_boot_l = []
+    _, mean_train = linear_sim_func.ridge_linear_fit_predict(y, X, X_test, penal_size, return_X_predict = True)
     for i in range(n_boot):
         index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
-        y_boot = y[index_boot]
-        X_boot = X[index_boot]
-        mean_boot_l.append(fit_predict(y_boot, X_boot, X_test, best_penal) )
+        if residual_boot:
+            residuals = y - mean_train
+            y_boot = mean_train + residuals[index_boot]
+            X_boot = X
+        else:
+            y_boot = y[index_boot]
+            X_boot = X[index_boot]
+        if CV_boot:
+            clf = RidgeCV(alphas = penal_sizes, store_cv_values = True).fit(X_boot, y_boot)
+            mean_boot_l.append(clf.predict(X_test))
+        else:
+            mean_boot_l.append(linear_sim_func.ridge_linear_fit_predict(y_boot, X_boot, X_test, penal_size) )
     mean_boot_l = np.array(mean_boot_l)
     se = np.std(mean_boot_l, axis = 0)
-    mean = np.mean(mean_boot_l, axis = 0)
+    if smoothed:
+        mean = np.mean(mean_boot_l, axis = 0)
+    else:
+        mean = linear_sim_func.ridge_linear_fit_predict(y, X, X_test, penal_size)
+        #mean = linear_sim_func.linear_fit_predict(y, X, X_test)
     return mean, se, mean_boot_l
 
 def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
