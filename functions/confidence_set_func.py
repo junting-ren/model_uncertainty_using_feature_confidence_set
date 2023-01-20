@@ -245,7 +245,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         #print('goldsec once')
     # return a, L, U
     
-def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = None, use_true_contour = False):
+def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = None, use_true_contour = False, MC = False):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -257,7 +257,7 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
     mean_boot_l: the matrix of predicted values from new fitted models on the bootstraped samples.
     mean_test_true: the true mean for the test data.
     use_true_contour: indicator whether to use the true mean to calculate the distances. 
-    
+    MC: whether the input mean_boot_l is from Monte Carlo simulation instead of bootstrap
     Returns:
     ---------------
     A tuple contains the following:
@@ -277,7 +277,11 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
         The number of points in the outer set
         The number of points in the true set
     '''
-    G = (mean_boot_l-mean)/se
+    if MC:
+        G = (mean_boot_l-mean_test_true)/se
+    else:
+        mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
+        G = (mean_boot_l-mean_boot)/se
     if use_true_contour and mean_test_true is not None:
         d = (mean_test_true - level)/se
     else:
@@ -309,7 +313,10 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
         else:
             contain = False
         # Getting the containment for the whole set SCB
-        r_max_l = np.max(np.abs((mean_boot_l-mean)/se),axis = 1)
+        if MC:
+            r_max_l = np.max(np.abs((mean_boot_l-mean_test_true)/se),axis = 1)
+        else:
+            r_max_l = np.max(np.abs((mean_boot_l-mean_boot)/se),axis = 1)
         thres = np.quantile(r_max_l, q = 1 - 0.05)
         low = mean - thres*se
         high = mean + thres*se
