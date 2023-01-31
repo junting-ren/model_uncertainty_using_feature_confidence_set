@@ -8,6 +8,21 @@ from sklearn.linear_model import LinearRegression
 import pandas as pd
 import time
 
+def second_stage_boot(mean_boot_l, point_pred,se):
+    '''
+    mean_boot_l: bootstrap of the predictions, matrix
+    point_pred: the prediction estimators we are using
+    se_pred: the se estimate for the predictions
+    '''
+    n_boot = mean_boot_l.shape[0]
+    n_test = mean_boot_l.shape[1]
+    mean_matrix = []
+    for i in range(n_boot):
+        index_boot= np.random.randint(len(n_test), size=len(n_test))
+        mean_matrix.append(np.mean(mean_boot_l[:,index_boot], axis = 0))
+    mean_matrix = np.array(mean_matrix) 
+    return (mean_matrix - point_pred)/se
+    
 
 class cal_thres_at_q(object):
     def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None):
@@ -245,7 +260,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         #print('goldsec once')
     # return a, L, U
     
-def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = None, use_true_contour = False, MC = False):
+def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = None, use_true_contour = False, MC = False, center_G= True):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -280,8 +295,11 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
     if MC:
         G = (mean_boot_l-mean_test_true)/se
     else:
-        mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
-        G = (mean_boot_l-mean_boot)/se
+        if center_G:
+            mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
+            G = (mean_boot_l-mean_boot)/se
+        else:
+            G = (mean_boot_l-mean)/se
     if use_true_contour and mean_test_true is not None:
         d = (mean_test_true - level)/se
     else:
@@ -314,9 +332,9 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
             contain = False
         # Getting the containment for the whole set SCB
         if MC:
-            r_max_l = np.max(np.abs((mean_boot_l-mean_test_true)/se),axis = 1)
+            r_max_l = np.max(np.abs(G),axis = 1)
         else:
-            r_max_l = np.max(np.abs((mean_boot_l-mean_boot)/se),axis = 1)
+            r_max_l = np.max(np.abs(G),axis = 1)
         thres = np.quantile(r_max_l, q = 1 - 0.05)
         low = mean - thres*se
         high = mean + thres*se
