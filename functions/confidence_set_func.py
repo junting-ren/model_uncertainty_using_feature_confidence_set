@@ -14,13 +14,15 @@ def second_stage_boot(mean_boot_l, point_pred,se):
     point_pred: the prediction estimators we are using
     se_pred: the se estimate for the predictions
     '''
+    #import pdb; pdb.set_trace()
     n_boot = mean_boot_l.shape[0]
     n_test = mean_boot_l.shape[1]
     mean_matrix = []
     for i in range(n_boot):
-        index_boot= np.random.randint(len(n_test), size=len(n_test))
-        mean_matrix.append(np.mean(mean_boot_l[:,index_boot], axis = 0))
-    mean_matrix = np.array(mean_matrix) 
+        index_boot= np.random.randint(n_boot, size=n_boot)
+        mean_matrix.append(np.mean(mean_boot_l[index_boot,:], axis = 0))
+    mean_matrix = np.array(mean_matrix)
+    #import pdb; pdb.set_trace()
     return (mean_matrix - point_pred)/se
     
 
@@ -297,7 +299,17 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
     else:
         if center_G:
             mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
-            G = (mean_boot_l-mean_boot)/se
+            G1 = (mean_boot_l-mean_boot)/se
+            G2 = second_stage_boot(mean_boot_l, mean, se)
+            G = []
+            conv_total = 5
+            n_boot = G1.shape[0]
+            for i in range(conv_total):
+                random_index1 = np.random.randint(n_boot, size=n_boot)
+                random_index2 = np.random.randint(n_boot, size=n_boot)
+                G.append(G1[random_index1,:]+G2[random_index2,:])
+            #import pdb; pdb.set_trace()
+            G = np.concatenate(G, axis = 0)
         else:
             G = (mean_boot_l-mean)/se
     if use_true_contour and mean_test_true is not None:
