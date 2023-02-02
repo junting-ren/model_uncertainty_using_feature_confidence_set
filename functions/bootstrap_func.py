@@ -6,6 +6,24 @@ import neural_net_func
 from sklearn.linear_model import RidgeCV
 import linear_sim_func
 
+def second_stage_boot(mean_boot_l):
+    '''
+    mean_boot_l: bootstrap of the predictions, matrix
+    point_pred: the prediction estimators we are using
+    se_pred: the se estimate for the predictions
+    '''
+    #import pdb; pdb.set_trace()
+    n_boot = mean_boot_l.shape[0]
+    n_test = mean_boot_l.shape[1]
+    mean_matrix = []
+    for i in range(n_boot):
+        index_boot= np.random.randint(n_boot, size=n_boot)
+        mean_matrix.append(np.mean(mean_boot_l[index_boot,:], axis = 0))
+    mean_matrix = np.array(mean_matrix)
+    se =  np.std(mean_matrix, axis = 0)
+    #import pdb; pdb.set_trace()
+    return mean_matrix,se
+
 def fit_bootstrap(y, X, X_test, n_boot = 200, smoothed = False, residual_boot = False):
     '''Function for fittting the model and bootstrap 
     Parameters:
@@ -37,6 +55,7 @@ def fit_bootstrap(y, X, X_test, n_boot = 200, smoothed = False, residual_boot = 
     mean_boot_l = np.array(mean_boot_l)
     if smoothed:
         mean = np.mean(mean_boot_l, axis = 0)
+        mean_boot_l, se = second_stage_boot(mean_boot_l)
     else:
         mean = linear_sim_func.linear_fit_predict(y, X, X_test)
     se = np.std(mean_boot_l, axis = 0)
@@ -67,6 +86,7 @@ def fit_bootstrap_ridge(y, X, X_test, n_boot = 200,  penal_sizes = [1,0.5,1e-1, 
     se = np.std(mean_boot_l, axis = 0)
     if smoothed:
         mean = np.mean(mean_boot_l, axis = 0)
+        mean_boot_l, se = second_stage_boot(mean_boot_l)
     else:
         mean = linear_sim_func.ridge_linear_fit_predict(y, X, X_test, penal_size)
         #mean = linear_sim_func.linear_fit_predict(y, X, X_test)
