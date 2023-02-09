@@ -8,23 +8,58 @@ from sklearn.linear_model import LinearRegression
 import pandas as pd
 import time
 
-def second_stage_boot(mean_boot_l, point_pred,se):
+
+def second_stage_boot(mean_boot_l, n_sample = None):
     '''
     mean_boot_l: bootstrap of the predictions, matrix
-    point_pred: the prediction estimators we are using
-    se_pred: the se estimate for the predictions
     '''
     #import pdb; pdb.set_trace()
     n_boot = mean_boot_l.shape[0]
     n_test = mean_boot_l.shape[1]
     mean_matrix = []
+    if n_sample is None:
+        n_sample = n_boot
     for i in range(n_boot):
-        index_boot= np.random.randint(n_boot, size=n_boot)
+        index_boot= np.random.randint(n_boot, size=n_sample)
         mean_matrix.append(np.mean(mean_boot_l[index_boot,:], axis = 0))
     mean_matrix = np.array(mean_matrix)
+    se =  np.std(mean_matrix, axis = 0)
     #import pdb; pdb.set_trace()
-    return (mean_matrix - point_pred)/se
+    return mean_matrix,se
+
+
+def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = False, second_stage = False, center_G = True,
+                        center_pred = True):
+    '''
+    Preprocessing the bootstrap samples before input into the confidence set function
     
+    Parameters
+    ----------------------------
+    mean_boot_l:bootstrap of the predictions, matrix
+    mean: point prediction
+    se: standard error of point prediction
+    mean_test_true: true mean 
+    MC: whether mean_boot_l comes from Monte Carlo from true population
+    second_stage: whether to decrease the variance using the bootstrap mean distribution and point prediction
+    center_G: if second_stage is False and center_G is True, we center the bootstrap sample with its mean
+    center_pred: if second_stage is False and center_pred is True, we use mean of the bootstrap sample as point prediction but use the original distribution for G
+    '''
+    #import pdb; pdb.set_trace()
+    if MC:
+        G = (mean_boot_l-mean_test_true)/se
+    elif second_stage:
+        mean_matrix, se = second_stage_boot(mean_boot_l)
+        mean = np.mean(mean_boot_l, axis = 0)
+        G = (mean_matrix - mean)/se
+    else:
+        if center_G:
+            mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
+            G = (mean_boot_l-mean_boot)/se
+        else:
+            G = (mean_boot_l-mean)/se
+        if center_pred:
+            mean = np.mean(mean_boot_l, axis = 0)
+    return G, mean, se
 
 class cal_thres_at_q(object):
     def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None):
@@ -262,7 +297,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         #print('goldsec once')
     # return a, L, U
     
-def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = None, use_true_contour = False, MC = False, center_G= True):
+def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, MC = False, center_G= True):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -271,10 +306,9 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
     level: the targeted level such that all the samples' true mean is greater than.
     mean: the predicted values from the model.
     se: the predicted values' standard error.
-    mean_boot_l: the matrix of predicted values from new fitted models on the bootstraped samples.
+    G: the standardized matrix of predicted values from new fitted models on the bootstraped samples.
     mean_test_true: the true mean for the test data.
     use_true_contour: indicator whether to use the true mean to calculate the distances. 
-    MC: whether the input mean_boot_l is from Monte Carlo simulation instead of bootstrap
     Returns:
     ---------------
     A tuple contains the following:
@@ -294,24 +328,6 @@ def prediction_confidence_set(L, level, mean, se, mean_boot_l, mean_test_true = 
         The number of points in the outer set
         The number of points in the true set
     '''
-    if MC:
-        G = (mean_boot_l-mean_test_true)/se
-    else:
-        if center_G:
-            mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
-            G1 = (mean_boot_l-mean_boot)/se
-            G2 = second_stage_boot(mean_boot_l, mean, se)
-            G = []
-            conv_total = 5
-            n_boot = G1.shape[0]
-            for i in range(conv_total):
-                random_index1 = np.random.randint(n_boot, size=n_boot)
-                random_index2 = np.random.randint(n_boot, size=n_boot)
-                G.append(G1[random_index1,:]+G2[random_index2,:])
-            #import pdb; pdb.set_trace()
-            G = np.concatenate(G, axis = 0)
-        else:
-            G = (mean_boot_l-mean)/se
     if use_true_contour and mean_test_true is not None:
         d = (mean_test_true - level)/se
     else:
