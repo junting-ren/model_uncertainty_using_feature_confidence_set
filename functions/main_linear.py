@@ -11,25 +11,25 @@ import linear_sim_func
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-file_name = 'test'+date+'.csv'
+file_name = 'sim_ridge'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
-    n_sim = 2
+    n_sim = 500
     N_v = [60]
     N_test_v = [500]
     p_v = [40]
     error_sd_v = [1]
     L_v = [0.9]
     level_v = [0.2]
-    use_true_contour_v = [True]
+    use_true_contour_v = [False, True]
     n_boot_v = [2000]
     ridge_penal_v = [[1,0.5,1e-1, 1e-2, 1e-3, 1e-4]]
     #ridge_penal_v = [None]
     MC_v = [False]
-    second_stage_v = [False, True]
+    second_stage_v = [False]
     center_G_v = [True, False]
-    center_pred_v = [False, True]
-    residual_boot_v = [False, True]
+    center_pred_v = [True, False]
+    residual_boot_v = [False]
     CV_boot_v = [True]
     df_result = []
     param_grid = {'N': N_v, 'N_test': N_test_v, 'p': p_v , 'error_sd': error_sd_v, 'L': L_v,
