@@ -7,7 +7,7 @@ from sklearn.linear_model import RidgeCV
 import linear_sim_func
 
 
-def fit_bootstrap(y, X, X_test, n_boot = 200, residual_boot = False):
+def fit_bootstrap(y, X, X_test, n_boot = 200, residual_boot = False, boot_sample_ratio = 1):
     '''Function for fittting the model and bootstrap 
     Parameters:
     ---------------
@@ -25,7 +25,7 @@ def fit_bootstrap(y, X, X_test, n_boot = 200, residual_boot = False):
     '''
     mean_boot_l = []
     for i in range(n_boot):
-        index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
+        index_boot= np.random.randint(X.shape[0], size=int(X.shape[0]*boot_sample_ratio))
         if residual_boot:
             residuals = y - mean_train
             y_boot = mean_train + residuals[index_boot]
@@ -40,13 +40,13 @@ def fit_bootstrap(y, X, X_test, n_boot = 200, residual_boot = False):
     return mean, se, mean_boot_l,mean_train
 
 
-def fit_bootstrap_ridge(y, X, X_test, n_boot = 200,  penal_sizes = [1,0.5,1e-1, 1e-2, 1e-3, 1e-4],residual_boot = False, CV_boot = False):
+def fit_bootstrap_ridge(y, X, X_test, n_boot = 200,  penal_sizes = [1,0.5,1e-1, 1e-2, 1e-3, 1e-4],residual_boot = False, CV_boot = False, boot_sample_ratio = 1):
     clf = RidgeCV(alphas = penal_sizes, store_cv_values = True).fit(X, y)
     errors = np.mean(clf.cv_values_, axis = 0)
     penal_size = penal_sizes[np.argmin(errors)]
     mean_boot_l = []
     for i in range(n_boot):
-        index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
+        index_boot= np.random.randint(X.shape[0], size=int(X.shape[0]*boot_sample_ratio))
         if residual_boot:
             residuals = y - mean_train
             y_boot = mean_train + residuals[index_boot]
