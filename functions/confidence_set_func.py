@@ -41,16 +41,21 @@ def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = Fals
     mean_test_true: true mean 
     MC: whether mean_boot_l comes from Monte Carlo from true population
     second_stage: whether to decrease the variance using the bootstrap mean distribution and point prediction
-    center_G: if second_stage is False and center_G is True, we center the bootstrap sample with its mean
-    center_pred: if second_stage is False and center_pred is True, we use mean of the bootstrap sample as point prediction but use the original distribution for G
+    center_G:  we center the bootstrap sample with its mean
+    center_pred: we use mean of the bootstrap sample as point prediction but use the original distribution for G
     '''
     #import pdb; pdb.set_trace()
     if MC:
         G = (mean_boot_l-mean_test_true)/se
     elif second_stage:
-        mean_matrix, se = second_stage_boot(mean_boot_l)
-        mean = np.mean(mean_boot_l, axis = 0)
-        G = (mean_matrix - mean)/se
+        mean_matrix, se = second_stage_boot(mean_boot_l) 
+        mean_boot = np.mean(mean_boot_l, axis = 0)
+        if center_G:
+            G = (mean_matrix - mean_boot)/se
+        else:
+            G = (mean_matrix - mean)/se
+        if center_pred:
+            mean = mean_boot
     else:
         if center_G:
             mean_boot = np.mean(mean_boot_l, axis = 0)# assuming that the estimator is unbiased even for finite sample
