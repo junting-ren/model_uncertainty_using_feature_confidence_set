@@ -32,6 +32,7 @@ def transform_X_poly(X):
     X = np.concatenate((root_X, square_X, X), axis = 1)
     return np.concatenate((np.ones((N, 1)), X), axis = 1)
 
+
 def generate_NN_data(N, N_test, p,  transform_func, beta=None, error_sd = 3, seed = None, X = None, X_test = None, if_tensor = False):
     '''Generate neural network data
     
@@ -59,12 +60,12 @@ def generate_NN_data(N, N_test, p,  transform_func, beta=None, error_sd = 3, see
         The testing true mean without irreducible error included
     '''
     rng = np.random.default_rng(seed)
-    if beta is None:
-        beta = rng.standard_normal(size = p*4+1)
     # Training dataset 
     if X is None:
         X = rng.standard_normal(size = (N,p))
     X_train_transformed = transform_func(X)
+    if beta is None:
+        beta = rng.standard_normal(size = X_train_transformed.shape[1])
     y = X_train_transformed @ beta + rng.normal(loc = 0,scale = error_sd, size = (N,))
     # Test dataset
     if X_test is None:
