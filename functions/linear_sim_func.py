@@ -91,7 +91,7 @@ def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour 
     #import pdb; pdb.set_trace()
     G, mean, se =confidence_set_func.process_boot_samples(mean_boot_l, mean, se, mean_test_true, 
                                       MC, second_stage, center_G, center_pred)
-    _, L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v,inner_points_num,outer_points_num,true_set_points_num = confidence_set_func.prediction_confidence_set(L, level, mean, se, G, mean_test_true = mean_test_true, use_true_contour = use_true_contour, MC = MC, center_G = center_G)
+    _, L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v,inner_points_num,outer_points_num,true_set_points_num = confidence_set_func.prediction_confidence_set(L, level, mean, se, G, mean_test_true = mean_test_true, use_true_contour = use_true_contour)
     p = X_test.shape[1]
     N_test = X_test.shape[0]
     if return_range:
