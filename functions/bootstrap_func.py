@@ -82,6 +82,9 @@ def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
         the columns indicating the bootstrap index, numpy array of (n_boot, X_test.shape[0])
     '''
     mean_boot_l = []
+    model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = batchnorm_ind)
+    mean_trian = neural_net_func.nn_fit_predict(model, y, X, X, n_iter = n_iter, lr = lr, device = device,  
+                          patience = patience, weight_decay = weight_decay) 
     for i in range(n_boot):
         index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
         y_boot = y[index_boot]
@@ -91,5 +94,7 @@ def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
                           patience = patience, weight_decay = weight_decay) )
     mean_boot_l = np.array(mean_boot_l)
     se = np.std(mean_boot_l, axis = 0)
-    mean = np.mean(mean_boot_l, axis = 0)
-    return mean, se, mean_boot_l    
+    model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = batchnorm_ind)
+    mean = neural_net_func.nn_fit_predict(model, y, X, X_test, n_iter = n_iter, lr = lr, device = device,  
+                          patience = patience, weight_decay = weight_decay) 
+    return mean, se, mean_boot_l, mean_trian  
