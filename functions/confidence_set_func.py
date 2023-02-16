@@ -302,7 +302,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         #print('goldsec once')
     # return a, L, U
     
-def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, MC = False, center_G= True):
+def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -364,10 +364,7 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         else:
             contain = False
         # Getting the containment for the whole set SCB
-        if MC:
-            r_max_l = np.max(np.abs(G),axis = 1)
-        else:
-            r_max_l = np.max(np.abs(G),axis = 1)
+        r_max_l = np.max(np.abs(G),axis = 1)
         thres = np.quantile(r_max_l, q = 1 - 0.05)
         low = mean - thres*se
         high = mean + thres*se
