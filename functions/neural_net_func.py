@@ -52,7 +52,7 @@ def val(X, y, model, loss_fn, device):
     return loss.item()
 
 
-def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu', verbose = False, patience = 10, weight_decay = 0):
+def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu', verbose = False, patience = 10, weight_decay = 0, mean_num = 1, return_best = False):
     loss_fn = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
     # split the training data into 20% validation and 80% training
@@ -67,15 +67,15 @@ def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu',
     
     min_loss_val = float('inf')
     patience_pass = 0
-    mean_num = n_iter//10
-    list_pred = [None]*mean_num
+    list_pred = []
     for i in range(n_iter):
         loss_train = train(X_train, y_train, model, loss_fn, optimizer, device = device)
         loss_val = val(X_val, y_val, model, loss_fn, device = device)
-        list_pred[i%mean_num] = model.forward(X_test.to(device)).squeeze(1).cpu().detach().numpy()
+        list_pred.append(model.forward(X_test.to(device)).squeeze(1).cpu().detach().numpy())
         if min_loss_val > loss_val:
             model_best = copy.deepcopy(model)
-            list_pred_best = list_pred
+            list_pred_best = list_pred[(i-mean_num+1):(i+1)]
+            min_loss_val = loss_val
         else:
             patience_pass += 1
         if patience_pass > patience:
@@ -83,7 +83,10 @@ def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu',
         if verbose:
             print(f'Loss is {loss} at iteration {i}')
     #import pdb; pdb.set_trace()
-    return np.mean(list_pred_best, axis = 0)
+    if return_best:
+        return np.mean(list_pred_best, axis = 0), model_best
+    else:
+        return np.mean(list_pred_best, axis = 0)
 # def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu', verbose = False, patience = 10, weight_decay = 0):
 #     loss_fn = nn.MSELoss()
 #     optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
