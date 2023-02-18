@@ -65,13 +65,16 @@ def fit_bootstrap_ridge(y, X, X_test, n_boot = 200,  penal_sizes = [1,0.5,1e-1, 
     return mean, se, mean_boot_l, mean_train
 
 def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
-                  n_boot = 200, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0, batchnorm_ind = False):
+                  n_boot = 200, n_iter = 100, lr = 0.01, device = 'cpu', 
+                     patience = 10, weight_decay = 0, batchnorm_ind = False,
+                    mean_num = 1, return_best = False):
     '''Function for fittting the model and bootstrap 
     Parameters:
     ---------------
     fit_predict: function for fitting and predicting by taking in y, X, X_test
     X: matrix of features
     y: vector of outcomes
+    mean_num: number of prediction samples during the gradient descend epoch to take average over for the final prediction.
     
     Return:
     --------------
@@ -83,18 +86,19 @@ def fit_bootstrap_NN(y, X, X_test, input_size, h_sizes, out_size,
     '''
     mean_boot_l = []
     model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = batchnorm_ind)
-    mean_trian = neural_net_func.nn_fit_predict(model, y, X, X, n_iter = n_iter, lr = lr, device = device,  
-                          patience = patience, weight_decay = weight_decay) 
+    mean, best_model = neural_net_func.nn_fit_predict(model, y, X, X_test, n_iter = n_iter, lr = lr, device = device,  
+                          patience = patience, weight_decay = weight_decay, mean_num = mean_num, return_best = True) 
+    mean_train = best_model.forward(X.to(device)).squeeze(1).cpu().detach().numpy()
     for i in range(n_boot):
         index_boot= np.random.randint(X.shape[0], size=X.shape[0]) 
         y_boot = y[index_boot]
         X_boot = X[index_boot]
         model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = batchnorm_ind)
         mean_boot_l.append(neural_net_func.nn_fit_predict(model, y_boot, X_boot, X_test, n_iter = n_iter, lr = lr, device = device,  
-                          patience = patience, weight_decay = weight_decay) )
+                          patience = patience, weight_decay = weight_decay, mean_num = mean_num) )
     mean_boot_l = np.array(mean_boot_l)
     se = np.std(mean_boot_l, axis = 0)
-    model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = batchnorm_ind)
-    mean = neural_net_func.nn_fit_predict(model, y, X, X_test, n_iter = n_iter, lr = lr, device = device,  
-                          patience = patience, weight_decay = weight_decay) 
-    return mean, se, mean_boot_l, mean_trian  
+    if return_best:
+        return mean, se, mean_boot_l, mean_train, best_model
+    else:
+        return mean, se, mean_boot_l, mean_train  
