@@ -17,6 +17,7 @@ class FF_neural_net(nn.Module):
         layer_sizes = [input_size] + h_sizes
         self.layers = nn.ModuleList()
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
         for k in range(len(layer_sizes)-1):
             self.layers.append(nn.Linear(layer_sizes[k], layer_sizes[k+1]).double())
             if batchnorm_ind and k != len(layer_sizes)-2:
@@ -57,13 +58,22 @@ def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu',
     optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
     # split the training data into 20% validation and 80% training
     #import pdb; pdb.set_trace()
-    index = np.random.permutation(X.shape[0])
-    split = X.shape[0]//5
-    train_idx, val_idx = index[split:], index[:split]
-    X_train = X[train_idx,:]
-    y_train = y[train_idx]
-    X_val = X[val_idx,:]
-    y_val = y[val_idx]
+    split = X.shape[0]//3
+    y_sorted = torch.sort(y)
+    index_val = np.linspace(start=0, stop=X.shape[0]-1, num=split, dtype = int)
+    y_val = y[index_val]
+    X_val = X[index_val,:]
+    index_val = torch.isin(y, y_val)
+    y_train = y[~index_val]
+    X_train = X[~index_val,:]
+    
+    # index = np.random.permutation(X.shape[0])
+    # split = X.shape[0]//3
+    # train_idx, val_idx = index[split:], index[:split]
+    # X_train = X[train_idx,:]
+    # y_train = y[train_idx]
+    # X_val = X[val_idx,:]
+    # y_val = y[val_idx]
     
     min_loss_val = float('inf')
     patience_pass = 0
