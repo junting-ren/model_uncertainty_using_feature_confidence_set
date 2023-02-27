@@ -102,12 +102,12 @@ def sim_NN(N, N_test, p, error_sd, transform_func,
             X_new, y_new, _, _,_ = generate_NN_data(N = N, N_test = N_test, p = p, transform_func = transform_func, beta = beta, error_sd = error_sd, if_tensor = True, uniform_range = uniform_range)
             model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = False)
             mean_boot_l.append(neural_net_func.nn_fit_predict(model, y_new, X_new, X_test, n_iter = n_iter, lr = lr, device = device,  
-                          patience = patience, weight_decay = weight_decay) )
+                          patience = patience, weight_decay = weight_decay, mean_num = mean_num) )
         mean_boot_l = np.array(mean_boot_l)
         se = np.std(mean_boot_l, axis = 0)
         model = neural_net_func.FF_neural_net(input_size = input_size, h_sizes = h_sizes, out_size = out_size, batchnorm_ind = False, mean_num = mean_num)
         mean = neural_net_func.nn_fit_predict(model, y, X, X_test, n_iter = n_iter, lr = lr, device = device,  
-                          patience = patience, weight_decay = weight_decay)
+                          patience = patience, weight_decay = weight_decay, mean_num = mean_num)
     else:
         mean, se, mean_boot_l, mean_train = bootstrap_func.fit_bootstrap_NN(y, X, X_test, p, h_sizes, out_size,
                                                   n_boot = n_boot, n_iter = n_iter, lr = lr, 
