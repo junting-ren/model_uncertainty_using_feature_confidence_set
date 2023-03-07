@@ -89,7 +89,7 @@ def generate_NN_data(N, N_test, p,  transform_func, beta=None, error_sd = 3, see
 def sim_NN(N, N_test, p, error_sd, transform_func, 
            h_sizes, out_size, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0,
            L = 0.925, level= 0, use_true_contour = False, n_boot = 500, MC = False, second_stage = False, 
-           center_G = False,center_pred = False, mean_num = 1, uniform_range = None, 
+           center_G = False,center_pred = False, mean_num = 1, uniform_range = None, pred_on_y =False,
            beta = None, X_test = None,  return_range = False, batchnorm_ind = False):
     '''Function for neural network simulation
     
@@ -111,12 +111,14 @@ def sim_NN(N, N_test, p, error_sd, transform_func,
     else:
         mean, se, mean_boot_l, mean_train = bootstrap_func.fit_bootstrap_NN(y, X, X_test, p, h_sizes, out_size,
                                                   n_boot = n_boot, n_iter = n_iter, lr = lr, 
-                                                  device = device, patience = patience, weight_decay = weight_decay, batchnorm_ind = batchnorm_ind, mean_num = mean_num)
+                                                  device = device, patience = patience, weight_decay = weight_decay, batchnorm_ind = batchnorm_ind, mean_num = mean_num, pred_on_y= pred_on_y)
     mae = np.mean(np.abs(mean - mean_test_true))
     mse = np.mean(np.square(mean - mean_test_true))
     #import pdb; pdb.set_trace()
     G, mean, se =confidence_set_func.process_boot_samples(mean_boot_l, mean, se, mean_test_true, 
                                       MC, second_stage, center_G, center_pred)
+    if pred_on_y:# if we want to cover the true prediction
+        mean_test_true = y_test
     if level is None:
         level = np.mean(mean)
     _, L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v,inner_points_num,outer_points_num,true_set_points_num = confidence_set_func.prediction_confidence_set(L, level, mean, se, G, mean_test_true = mean_test_true, use_true_contour = use_true_contour)
@@ -130,7 +132,7 @@ def sim_NN(N, N_test, p, error_sd, transform_func,
 def safe_sim_NN(N, N_test, p, error_sd, transform_func, 
            h_sizes, out_size, n_iter = 100, lr = 0.01, device = 'cpu', patience = 10, weight_decay = 0,
            L = 0.925, level= 0, use_true_contour = False, n_boot = 500, MC = False, second_stage = False, 
-           center_G = False,center_pred = False, mean_num = 1, uniform_range = None, 
+           center_G = False,center_pred = False, mean_num = 1, uniform_range = None, pred_on_y = False,
            beta = None, X_test = None,  return_range = False, batchnorm_ind = False):
     try:
         return sim_NN(N, N_test, p, error_sd, transform_func, 
@@ -138,7 +140,8 @@ def safe_sim_NN(N, N_test, p, error_sd, transform_func,
                       device = device, patience = patience, weight_decay = weight_decay,
                       L = L, level= level, use_true_contour = use_true_contour,
                       n_boot = n_boot,  MC = MC, second_stage = second_stage, 
-                       center_G = center_G,center_pred = center_pred, mean_num = mean_num, uniform_range = uniform_range, 
+                       center_G = center_G,center_pred = center_pred, mean_num = mean_num,
+                      uniform_range = uniform_range, pred_on_y = pred_on_y,
                       beta = beta, X_test = X_test,  return_range = return_range, batchnorm_ind = batchnorm_ind)
     except:
         return -1,  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1,-1,-1, -1
