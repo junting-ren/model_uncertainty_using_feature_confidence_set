@@ -49,8 +49,9 @@ def val(X, y, model, loss_fn, device):
     X, y = X.to(device), y.to(device)
     pred = model(X)
     #import pdb; pdb.set_trace()
+    error = pred.squeeze(1) - y
     loss = loss_fn(pred.squeeze(1), y)
-    return loss.item()
+    return loss.item(), error
 
 
 def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu', verbose = False, patience = 10, weight_decay = 0, mean_num = 1, return_best = False):
@@ -80,11 +81,11 @@ def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu',
     list_pred = []
     for i in range(n_iter):
         loss_train = train(X_train, y_train, model, loss_fn, optimizer, device = device)
-        loss_val = val(X_val, y_val, model, loss_fn, device = device)
+        loss_val, error = val(X_val, y_val, model, loss_fn, device = device)
         list_pred.append(model.forward(X_test.to(device)).squeeze(1).cpu().detach().numpy())
         if min_loss_val > loss_val:
             model_best = copy.deepcopy(model)
-            list_pred_best = list_pred[(i-mean_num+1):(i+1)]
+            best_error = error
             min_loss_val = loss_val
         else:
             patience_pass += 1
@@ -94,9 +95,9 @@ def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu',
             print(f'Loss is {loss} at iteration {i}')
     #import pdb; pdb.set_trace()
     if return_best:
-        return np.mean(list_pred_best, axis = 0), model_best
+        return model_best.forward(X_test.to(device)).squeeze(1).cpu().detach().numpy(), model_best, best_error.cpu().detach().numpy()
     else:
-        return np.mean(list_pred_best, axis = 0)
+        return model_best.forward(X_test.to(device)).squeeze(1).cpu().detach().numpy(),best_error.cpu().detach().numpy()
 # def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu', verbose = False, patience = 10, weight_decay = 0):
 #     loss_fn = nn.MSELoss()
 #     optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
