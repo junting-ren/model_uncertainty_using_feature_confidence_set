@@ -28,8 +28,9 @@ def second_stage_boot(mean_boot_l, n_sample = None):
     return mean_matrix,se
 
 
-def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = False, second_stage = False, center_G = True,
-                        center_pred = True):
+def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = False, 
+                         second_stage = False, center_G = True,
+                        center_pred = True,return_mean_boot_l = False):
     '''
     Preprocessing the bootstrap samples before input into the confidence set function
     
@@ -43,7 +44,14 @@ def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = Fals
     second_stage: whether to decrease the variance using the bootstrap mean distribution and point prediction
     center_G:  we center the bootstrap sample with its mean
     center_pred: we use mean of the bootstrap sample as point prediction but use the original distribution for G
+    err: This is the training sample error; if None, then we do not take account of the variance of the irreducible error
     '''
+    # if err is not None:
+    #     n_rep = 10
+    #     mean_boot_l = np.tile(mean_boot_l,[n_rep, 1])
+    #     temp = err[np.random.randint(0, len(err), size = (mean_boot_l.shape[0], mean_boot_l.shape[1]) )].reshape((mean_boot_l.shape))
+    #     mean_boot_l = mean_boot_l-temp
+    #     se = np.std(mean_boot_l, axis = 0)
     #import pdb; pdb.set_trace()
     if MC:
         G = (mean_boot_l-mean_test_true)/se
@@ -64,7 +72,10 @@ def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = Fals
             G = (mean_boot_l-mean)/se
         if center_pred:
             mean = np.mean(mean_boot_l, axis = 0)
-    return G, mean, se
+    if return_mean_boot_l:
+        return G, mean, se, mean_boot_l
+    else:
+        return G, mean, se
 
 class cal_thres_at_q(object):
     def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None):
