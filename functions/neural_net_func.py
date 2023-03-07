@@ -59,7 +59,7 @@ def nn_fit_predict(model, y, X, X_test, n_iter = 100, lr = 0.01, device = 'cpu',
     optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
     # split the training data into 20% validation and 80% training
     #import pdb; pdb.set_trace()
-    split = X.shape[0]//3
+    split = X.shape[0]//4
     y_sorted = torch.sort(y)
     index_val = np.linspace(start=0, stop=X.shape[0]-1, num=split, dtype = int)
     y_val = y[index_val]
