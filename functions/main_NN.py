@@ -10,7 +10,7 @@ import NN_sim_func
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-file_name = 'sim_NN_results_no_penal_mean_predict'+date+'.csv'
+file_name = 'sim_NN_predict_y'+date+'.csv'
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
     n_sim = 200
@@ -19,23 +19,24 @@ if __name__ ==  '__main__':
     p_v = [1]
     error_sd_v = [1]
     transform_func_v = [NN_sim_func.transform_X_poly]
-    h_sizes_v = [[5,5]]
+    h_sizes_v = [[40,40]]
     out_size_v = [1]
     n_iter_v = [200]
     lr_v = [0.01]
     device_v = ['cpu']
     patience_v = [20]
-    weight_decay_v = [0]
+    weight_decay_v = [0.01]
     L_v = [0.9]
     level_v = [None]
     use_true_contour_v = [False]
-    n_boot_v = [10]
+    n_boot_v = [100]
     MC_v = [False]
-    second_stage_v = [True, False]
-    center_G_v = [True, False]
-    center_pred_v = [True,False]
+    second_stage_v = [False]
+    center_G_v = [True]
+    center_pred_v = [False]
     mean_num_v = [1]
-    uniform_range_v = [[-2,2], None]
+    uniform_range_v = [[-2,2]]
+    pred_on_y_v = [True]
     beta_v = [np.array([1,2,1])]
     df_result = []
     param_grid = {'N': N_v, 'N_test': N_test_v, 'p': p_v , 'error_sd': error_sd_v, 
@@ -44,7 +45,7 @@ if __name__ ==  '__main__':
                   'patience':patience_v, 'weight_decay': weight_decay_v,
                   'L': L_v,'level': level_v,  'use_true_contour': use_true_contour_v, 'n_boot':n_boot_v,
                   'MC':MC_v, 'second_stage':second_stage_v, 'center_G':center_G_v, 'center_pred':center_pred_v,
-                  'mean_num':mean_num_v, 'uniform_range':uniform_range_v, 'beta':beta_v
+                  'mean_num':mean_num_v, 'uniform_range':uniform_range_v, 'pred_on_y':pred_on_y_v,'beta':beta_v
                  }
     param_grid = ParameterGrid(param_grid)
     start = time.time()
@@ -60,7 +61,7 @@ if __name__ ==  '__main__':
                             param['n_iter'],param['lr'],param['device'],param['patience'],param['weight_decay'],
                           param['L'],param['level'],param['use_true_contour'], param['n_boot'], 
                            param['MC'],param['second_stage'],param['center_G'],param['center_pred'],
-                            param['mean_num'], param['uniform_range'], param['beta']
+                            param['mean_num'], param['uniform_range'], param['pred_on_y'], param['beta']
                            ),))
         df_ = pd.DataFrame(np.array(pool_obj.starmap(NN_sim_func.safe_sim_NN,cur_para)), 
                      columns = ["contain", "contain_scb","contain_CS_scb","Lower_bound",
