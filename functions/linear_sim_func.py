@@ -26,23 +26,29 @@ def generate_linear_data(N,N_test = None, beta=None, p = None, error_sd = 3, see
     if X_test is None:
         X_test = rng.standard_normal(size = (N_test,p))
         X_test = np.concatenate((np.ones((N_test, 1)), X_test), axis = 1)
-        mean_test_true = X_test @ beta
     else:
         N_test = X_test.shape[0]
         X_test = np.concatenate((np.ones((N_test, 1)), X_test), axis = 1)
-        mean_test_true = X_test @ beta
+    mean_test_true = X_test @ beta
+    y_test = mean_test_true+rng.normal(loc = 0,scale = error_sd, size = (N_test,))
     # delete the intercept
     X = np.delete(X,0, axis = 1)
     X_test = np.delete(X_test, 0, axis = 1)
-    return y,X, X_test, mean_test_true
+    return y,X, X_test, y_test,mean_test_true
 
 def linear_fit_predict(y, X, X_test, return_X_predict = False):
     #import pdb; pdb.set_trace()
     reg = LinearRegression().fit(X, y)
-    if return_X_predict:
-        return reg.predict(X_test), reg.predict(X)
+    if isinstance(X_test,list):
+        result = []
+        for x in X_test:
+            result.append(reg.predict(x))
     else:
-        return  reg.predict(X_test)
+        result = reg.predict(X_test)
+    if return_X_predict:
+        return result, reg.predict(X)
+    else:
+        return  result
 
 def ridge_linear_fit_predict(y, X, X_test, penal_size, return_X_predict = False):
     #reg = RidgeCV(alphas = penal_sizes, store_cv_values = True).fit(X, y)
@@ -52,19 +58,19 @@ def ridge_linear_fit_predict(y, X, X_test, penal_size, return_X_predict = False)
     else:
         return  reg.predict(X_test)
 
-def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, ridge_penal = None, MC = False, second_stage = False, center_G = False,center_pred = False, residual_boot = False, CV_boot = False, beta = None, X_test = None,  return_range = False):
+def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, ridge_penal = None, MC = False, second_stage = False, center_G = False,center_pred = False, residual_boot = False, CV_boot = False, pred_on_y = False , beta = None, X_test = None,  return_range = False):
     if MC:
         mean_boot_l = []
         if beta is None:
             rng = np.random.default_rng(None)
             beta = rng.standard_normal(size = p)
-        y,X, X_test, mean_test_true = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
+        y,X, X_test,y_test, mean_test_true = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
         if ridge_penal is not None:
             clf = RidgeCV(alphas = ridge_penal, store_cv_values = True).fit(X, y)
             errors = np.mean(clf.cv_values_, axis = 0)
             best_penal = ridge_penal[np.argmin(errors)]
         for i in range(n_boot):
-            y_new,X_new, X_test_trash, mean_test_true_trash = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
+            y_new,X_new, X_test_trash,_, mean_test_true_trash = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
             if ridge_penal is not None:
                 if CV_boot:
                     clf = RidgeCV(alphas = ridge_penal, store_cv_values = True).fit(X_new, y_new)
@@ -77,7 +83,7 @@ def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour 
         se = np.std(mean_boot_l, axis = 0)
         mean = ridge_linear_fit_predict(y, X, X_test, best_penal) if ridge_penal is not None else linear_fit_predict(y, X, X_test) 
     else:
-        y,X, X_test, mean_test_true = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
+        y,X, X_test, y_test, mean_test_true = generate_linear_data(N = N, N_test = N_test, p = p,beta = beta, error_sd = error_sd, X_test = X_test)
         if ridge_penal is not None:
             mean, se, mean_boot_l, mean_train = bootstrap_func.fit_bootstrap_ridge(y = y, 
                                                   X = X, X_test = X_test, n_boot = n_boot,  
@@ -85,9 +91,15 @@ def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour 
                                                 residual_boot= residual_boot, CV_boot = CV_boot)
         else:# linear model without penality
             mean, se, mean_boot_l, mean_train = bootstrap_func.fit_bootstrap(y = y, 
-                                                  X = X, X_test = X_test, n_boot = n_boot, residual_boot = residual_boot)
+                                                                             X = X, X_test = X_test, 
+                                                                             n_boot = n_boot, 
+                                                                             residual_boot = residual_boot,
+                                                                             pred_on_y = pred_on_y
+                                                                            )
     mae = np.mean(np.abs(mean - mean_test_true))
     mse = np.mean((mean - mean_test_true)**2)
+    if pred_on_y:# if we want to cover the 
+        mean_test_true = y_test
     #import pdb; pdb.set_trace()
     G, mean, se =confidence_set_func.process_boot_samples(mean_boot_l, mean, se, mean_test_true, 
                                       MC, second_stage, center_G, center_pred)
@@ -99,9 +111,9 @@ def sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour 
     else:
         return contain, contain_scb, contain_CS_scb, L, U, L1, L2, U1, U2, n_points, mae, mse, inner_points_num,outer_points_num,true_set_points_num
     
-def safe_sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, ridge_penal = None, MC = False, second_stage = False, center_G = False,center_pred = False, residual_boot = False, CV_boot = False, beta = None, X_test = None,  return_range = False):
+def safe_sim_linear(N, N_test, p, error_sd, L = 0.925, level= None, use_true_contour = False, n_boot = 500, ridge_penal = None, MC = False, second_stage = False, center_G = False,center_pred = False, residual_boot = False, CV_boot = False, pred_on_y = False, beta = None, X_test = None,  return_range = False):
     try:
-        return sim_linear(N, N_test, p, error_sd, L, level, use_true_contour, n_boot, ridge_penal, MC, second_stage, center_G,center_pred,residual_boot, CV_boot ,beta, X_test,  return_range)
+        return sim_linear(N, N_test, p, error_sd, L, level, use_true_contour, n_boot, ridge_penal, MC, second_stage, center_G,center_pred,residual_boot, CV_boot, pred_on_y, beta, X_test,  return_range)
     except:
         return -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1,-1,-1, -1
 
