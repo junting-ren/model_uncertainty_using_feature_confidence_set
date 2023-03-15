@@ -1,4 +1,5 @@
 *.csv
+data/
 fig_results/
 sim_results/
 *.png
