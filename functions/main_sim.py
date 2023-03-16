@@ -1,3 +1,4 @@
+import os
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -14,17 +15,19 @@ from models import NueralNet, logistic_regression
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-file_name = 'test'+date+'.csv'
+file_name = 'linear_sim_'+date+'.csv'
+folder_path = './linear_result'
+file_name = os.path.join(folder_path, file_name)
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
     n_sim = 2
-    L_v = [0.9]
+    L_v = [0.9, 0.6]
     level_v = [0]
     models_l_v = [[LinearRegression]]
     models_kwargs_l_v = [[{}]]
-    N_v = [100]
+    N_v = [100, 200, 400, 800]
     N_test_v = [500]
-    p_v = [2]
+    p_v = [9]
     error_sd_v = [1]
     data_sim_func_v = [generate_sim_data]
     data_kwargs_v = [{}]
@@ -46,7 +49,7 @@ if __name__ ==  '__main__':
         ctx = torch.multiprocessing.get_context('spawn')
         pool_obj = ctx.Pool()
         # pool_obj = multiprocessing.Pool()
-        # cur_para = (n_sim*(param,))
+        cur_para = (n_sim*(param,))
         df_ = pd.concat(pool_obj.map(sim_CS_wrapper, cur_para)).reset_index(drop = True)
         pool_obj.close()
         pool_obj.join()
