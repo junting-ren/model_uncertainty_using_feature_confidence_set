@@ -195,7 +195,7 @@ class cal_thres_at_q(object):
         lower_bound_p1 = np.mean(np.logical_and((self.inf_up1 >= -a- self.r_inf_up1), (self.sup_lo1 < a +self.r_inf_lo1)))
         lower_bound1 = lower_bound_p1+np.mean(np.logical_and((np.min(self.G_up2,axis = 1)  >= -a- self.r_inf_up2), (np.max(self.G_lo2,axis = 1) < a +self.r_inf_lo2)))-1
         lower_bound2 = lower_bound_p1+(np.sum( np.mean((self.G_up2 >= -a- self.r_up2), axis =0 ))+np.sum(np.mean((self.G_lo2 < a+ self.r_lo2),axis = 0)))-(len(self.r_up2)+len(self.r_lo2))
-        return max(lower_bound1, lower_bound2), lower_bound1, lower_bound2
+        return lower_bound2, lower_bound1, lower_bound2
 
     def cal_upper_bound(self,a):
         '''Calculate the upper bound in the paper
@@ -270,7 +270,8 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         search_func_cur = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2)
         a_q, lowerb, lowerb1, lowerb2, upperb1 = search_func_cur.binary_search()
         upperb2 = search_func_min.cal_upper_bound(a_q)
-        upperb = min(upperb1,upperb2)
+        #upperb = min(upperb1,upperb2)
+        upperb = upperb1
         range_ = upperb - lowerb
         range_v.append((e, range_))
         if range_ < range_min:
@@ -370,6 +371,8 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         return pd.DataFrame(dict_), L, U, None, None, None
     else:# if there is True mean
         true_set = mean_test_true >= level
+        percent_points_FP = np.mean((dict_["inner"].astype(int) - true_set.astype(int))>=1) 
+        percent_points_FP = None if percent_points_FP==0 else percent_points_FP
         if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
             contain = True
         else:
@@ -383,6 +386,6 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         outer = high >= level
         contain_scb = np.all(np.logical_and(low<= mean_test_true, high>= mean_test_true))
         contain_CS_scb = True if np.all( (true_set.astype(int) - inner.astype(int)) >= 0 ) and np.all( (outer.astype(int) - true_set.astype(int)) >= 0 ) else False
-        return pd.DataFrame(dict_), L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v, inner_points_num,outer_points_num,true_set_points_num
+        return pd.DataFrame(dict_), L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v, inner_points_num,outer_points_num,true_set_points_num, percent_points_FP
     
 
