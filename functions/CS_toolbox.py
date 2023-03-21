@@ -30,6 +30,7 @@ def bootstrap(model, model_kwargs, y, X, X_test, n_boot = 200):
         pred_test = model_b.predict(X_test)
         pred_val = model_b.predict(X_val)
         err = pred_val - y_val
+        err = err - np.mean(err)
         pred_test_p_err = pred_test + err[np.random.randint(0, len(err), size = (len(pred_test),) )]
         mean_boot_l.append(pred_test)
         mean_boot_y_l.append(pred_test_p_err)
