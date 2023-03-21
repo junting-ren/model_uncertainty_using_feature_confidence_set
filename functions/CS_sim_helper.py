@@ -19,11 +19,14 @@ def transform_X(X):
     N = X.shape[0]
     # sigmoid
     sigmoid_X = 1/(1+np.exp(-X))
+    #sigmoid_X = 0*X
     # cosine
-    cos_X = np.cos(X)
+    cos_X = np.cos(X*5)*2
     # square
-    square_X = np.square(X)
-    X = np.concatenate((sigmoid_X, cos_X, square_X, X), axis = 1)
+    #square_X = np.square(X)
+    square_X = X*0
+    #root_X = np.sqrt(X)
+    X = np.concatenate((sigmoid_X, cos_X, square_X), axis = 1)
     return np.concatenate((np.ones((N, 1)), X), axis = 1)
 
 def transform_X_poly(X):
@@ -38,7 +41,7 @@ def transform_X_poly(X):
 
 def generate_sim_data(N, N_test, p, error_sd, 
                       transform_func = None, binary = False, beta=None, 
-                      seed = None, X = None, X_test = None, uniform_range = None
+                      seed = None, X = None, X_test = None, uniform_range_beta = None,uniform_range_x = None
                      ):
     '''Generate data for simulation
     
@@ -69,16 +72,19 @@ def generate_sim_data(N, N_test, p, error_sd,
     rng = np.random.default_rng(seed)
     # Training dataset 
     if X is None:
-        if uniform_range is None:
+        if uniform_range_x is None:
             X = rng.standard_normal(size = (N,p))
         else:
-            X = rng.uniform(uniform_range[0], uniform_range[1], size = (N,p))
+            X = rng.uniform(uniform_range_x[0], uniform_range_x[1], size = (N,p))
     if transform_func is None:
         X_train_transformed = X
     else:
         X_train_transformed = transform_func(X)
     if beta is None:
-        beta = rng.standard_normal(size = X_train_transformed.shape[1])
+        if uniform_range_beta is None:
+            beta = rng.standard_normal(size = X_train_transformed.shape[1])
+        else:
+            beta = rng.uniform(uniform_range_beta[0], uniform_range_beta[1], size = X_train_transformed.shape[1])
     if binary:
         y = X_train_transformed @ beta
         y_prob = 1/(1+np.exp(-y))
@@ -89,10 +95,10 @@ def generate_sim_data(N, N_test, p, error_sd,
     # Test dataset
     #import pdb; pdb.set_trace()
     if X_test is None:
-        if uniform_range is None:
+        if uniform_range_x is None:
             X_test = rng.standard_normal(size = (N_test,p))
         else:
-            X_test = rng.uniform(uniform_range[0], uniform_range[1], size = (N_test,p))
+            X_test = rng.uniform(uniform_range_x[0], uniform_range_x[1], size = (N_test,p))
     if transform_func is None:
         X_test_transformed = X_test
     else:
@@ -121,25 +127,25 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                                          MC = False, center_G = center_G, center_pred = center_pred)
     # construct confidence set
     (df_res, L, U, contain, contain_scb, contain_CS_scb, 
-     L1, L2, U1, U2, n_points, range_v, inner_points_num,outer_points_num,true_set_points_num) = \
+     L1, L2, U1, U2, n_points, range_v, inner_points_num,outer_points_num,true_set_points_num, percent_points_FP) = \
     prediction_confidence_set(L, level, point_pred, se, G, mean_test_true = mean_test_true, use_true_contour = use_true_contour)
     if pred_y:
         G_y, _ = process_boot_samples(mean_boot_y_l, point_pred, se_y, mean_test_true = mean_test_true, 
                                              MC = False, center_G = center_G, center_pred = center_pred)
         (df_res_y, L_y, U_y, contain_y, contain_scb_y, contain_CS_scb_y, 
-         L1_y, L2_y, U1_y, U2_y, n_points_y, range_v_y, inner_points_num_y,outer_points_num_y,true_set_points_num_y) = \
+         L1_y, L2_y, U1_y, U2_y, n_points_y, range_v_y, inner_points_num_y,outer_points_num_y,true_set_points_num_y, percent_points_FP_y) = \
         prediction_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test, use_true_contour = use_true_contour)
     
-        r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model, 0],
-                [contain_y, contain_scb_y, L_y, U_y, L1_y, L2_y, U1_y, U2_y, n_points_y, inner_points_num_y,outer_points_num_y,true_set_points_num_y, model, 1]
+        r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model,percent_points_FP, 0],
+                [contain_y, contain_scb_y, L_y, U_y, L1_y, L2_y, U1_y, U2_y, n_points_y, inner_points_num_y,outer_points_num_y,true_set_points_num_y, model, percent_points_FP_y,1]
                ]
     else:
-        r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model, 0
+        r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model,percent_points_FP, 0
                ]]    
     return pd.DataFrame(np.array(r), columns = ["contain","contain_scb","Lower_bound",
                                                 "Upper_bound", "L1", "L2", "U1", "U2", "points_in_e1", 
                                                 'inner_points_num', 'outer_points_num' ,'true_set_points_num', 
-                                                'model', 'on_y'])
+                                                'model', 'percent_points_FP_inner','on_y'])
 
 def sim_CS(L, level, models_l, model_kwargs_l, 
            N, N_test, p, error_sd, 
@@ -221,3 +227,5 @@ def check_overfitting(model, model_kwargs,
     
     # return the training and test error
     return (train_error, test_error)
+
+
