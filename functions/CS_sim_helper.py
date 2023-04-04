@@ -3,7 +3,7 @@ from confidence_set_func import prediction_confidence_set
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from plotnine import *
 
 def transform_X(X):
     '''Transform the design matrix using sigmoid, cos, square function
@@ -18,10 +18,10 @@ def transform_X(X):
     '''
     N = X.shape[0]
     # sigmoid
-    sigmoid_X = 1/(1+np.exp(-X))
-    #sigmoid_X = 0*X
+    #sigmoid_X = 1/(1+np.exp(-X))
+    sigmoid_X = 0*X
     # cosine
-    cos_X = np.cos(X*5)*2
+    cos_X = np.cos(X*3)*2
     # square
     #square_X = np.square(X)
     square_X = X*0
@@ -118,7 +118,7 @@ def generate_sim_data(N, N_test, p, error_sd,
 def bootstrap_and_CS(L, level, model, model_kwargs, 
                      X, y, X_test, y_test, mean_test_true = None, 
                      center_G = True, center_pred = False, 
-                     use_true_contour = False,  n_boot = 200, pred_y = True):
+                     use_true_contour = False,  n_boot = 200, pred_y = True, return_plot = False):
     
     point_pred, mean_boot_l, se, mean_boot_y_l, se_y = bootstrap(model, model_kwargs, y, X, X_test, n_boot = 200)
     #import pdb; pdb.set_trace()
@@ -142,16 +142,70 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
     else:
         r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model,percent_points_FP, 0
                ]]    
+    if return_plot:#only works for 1D case
+        df_res = pd.concat([df_res, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
+        df_res_y = pd.concat([df_res_y, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
+        df_res['Sets'] = np.where(df_res.inner, 'inner', 
+                                np.where(np.logical_and(df_res.outer, ~df_res.inner), 'uncertain', 'outside outer')
+                               )
+        df_res_y['Sets'] = np.where(df_res_y.inner, 'inner', 
+                                np.where(np.logical_and(df_res_y.outer, ~df_res_y.inner), 'uncertain', 'outside outer')
+                               )
+        CS_and_plot(df_res, df_res_y, level)
     return pd.DataFrame(np.array(r), columns = ["contain","contain_scb","Lower_bound",
                                                 "Upper_bound", "L1", "L2", "U1", "U2", "points_in_e1", 
                                                 'inner_points_num', 'outer_points_num' ,'true_set_points_num', 
                                                 'model', 'percent_points_FP_inner','on_y'])
 
+
+
+def CS_and_plot(df_res, df_res_y, level):
+    # Plot the first plot without confidence set
+    #import pdb; pdb.set_trace()
+    df_res_plot = pd.melt(df_res, id_vars = ['x'], value_vars = ['prediction', 'y'], var_name = 'type', value_name = 'y')
+    # ggplot() +geom_line(df_res, aes('x', 'true_mean', colour = 'True mean')) + geom_point(df_res_plot, aes('x', 'outcome', color = 'type'))+scale_colour_manual(values = {'True mean':'black'})
+    (ggplot() +
+     geom_line(df_res, aes(x = 'x', y = 'f(x)', color = "'f(x)'")) +
+     geom_point(df_res_plot, aes('x', 'y', color = 'type'))+
+     scale_color_manual(name = ' ',values = {'f(x)':'black', 'prediction':'grey', 'y':'brown'},
+                      guide = guide_legend(override_aes = {'linetype': ['-', 'None','None'],
+                                                            'shape':['None', 'o', 'o']} ) 
+                      )+
+     theme_light()+
+     labs(title = '', y = 'Outcome')
+    ).save('raw_points.jpg')
+    # Confidence set for the true mean
+    (ggplot() +
+     geom_line(df_res, aes(x = 'x', y = 'f(x)', color = "'f(x)'")) + 
+     geom_point(df_res, aes('x', 'prediction', color = 'Sets'))+
+     scale_color_manual(name = ' ',values = {'f(x)':'black', 'inner':'red', 'uncertain':'green', 'outside outer':'blue'},
+                        guide = guide_legend(override_aes = {'linetype': ['-', 'None','None', 'None'],
+                                                            'shape':['None', 'o', 'o', 'o']} )
+                      )+
+     geom_hline(yintercept = level, linetype = 'dashed')+
+     theme_light()+
+     labs(title = 'Confidence sets for f(x)', y = 'Outcome')
+    ).save('CS_f.jpg')
+    # Confidence set for the unobserved outcome
+    (ggplot() +
+     geom_point(df_res_y, aes('x', 'y', color = "'y'")) + 
+     geom_point(df_res_y, aes('x', 'prediction', color = 'Sets'))+
+     scale_color_manual(name = ' ',values = {'y':'brown', 'inner':'red', 'uncertain':'green', 'outside outer':'blue'},
+                        guide = guide_legend(override_aes = {'linetype': ['None', 'None','None', 'None'],
+                                                            'shape':['o', 'o', 'o', 'o']} )
+                      )+
+     geom_hline(yintercept = level, linetype = 'dashed')+
+     theme_light()+
+     labs(title = 'Confidence sets for y', y = 'Outcome')
+    ).save('CS_y.jpg')
+
+
+
 def sim_CS(L, level, models_l, model_kwargs_l, 
            N, N_test, p, error_sd, 
            data_sim_func, data_kwargs,
            center_G = True, center_pred = False, 
-           use_true_contour = False,  n_boot = 200):
+           use_true_contour = False,  n_boot = 200, return_plot = False):
     # data simulation
     X, y, X_test, y_test, mean_test_true, beta, y_prob, y_prob_test = generate_sim_data(N, N_test, p, error_sd, **data_kwargs)
     if y_prob is not None:
@@ -164,7 +218,7 @@ def sim_CS(L, level, models_l, model_kwargs_l,
         r = bootstrap_and_CS(L, level, model, kwarg,
                              X, y, X_test, y_test, mean_test_true = mean_test_true, 
                              center_G = center_G, center_pred = center_pred, 
-                             use_true_contour = use_true_contour,  n_boot = n_boot, pred_y = pred_y)
+                             use_true_contour = use_true_contour,  n_boot = n_boot, pred_y = pred_y, return_plot = return_plot)
         result_list.append(r)
     return pd.concat(result_list)
         
@@ -227,5 +281,6 @@ def check_overfitting(model, model_kwargs,
     
     # return the training and test error
     return (train_error, test_error)
+
 
 
