@@ -1,5 +1,5 @@
 from CS_toolbox import bootstrap,process_boot_samples
-from confidence_set_func import prediction_confidence_set
+from confidence_set_func import prediction_confidence_set, maxT_step_down_confidence_set
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -63,8 +63,7 @@ def generate_sim_data(N, N_test, p, error_sd,
     Returns:
     -----------------------------------
     A tuple containing the following:
-        The original training design matrix with no transformation (do not include the intercept), # features = p
-        The training outcome with irreducible error included
+x        The training outcome with irreducible error included
         The original testing design matrix with no transformation (do not include the intercept), # features = p
         The testing outcome with irreducible error included
         The testing true mean without irreducible error included
@@ -120,28 +119,29 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                      center_G = True, center_pred = False, 
                      use_true_contour = False,  n_boot = 200, pred_y = True, return_plot = False):
     
-    point_pred, mean_boot_l, se, mean_boot_y_l, se_y = bootstrap(model, model_kwargs, y, X, X_test, n_boot = 200)
+    point_pred, mean_boot_l, se, mean_boot_y_l, se_y = bootstrap(model, model_kwargs, y, X, X_test, n_boot = n_boot)
     #import pdb; pdb.set_trace()
     # Process the sample
     G, point_pred = process_boot_samples(mean_boot_l, point_pred, se, mean_test_true = mean_test_true, 
                                          MC = False, center_G = center_G, center_pred = center_pred)
-    # construct confidence set
-    (df_res, L, U, contain, contain_scb, contain_CS_scb, 
-     L1, L2, U1, U2, n_points, range_v, inner_points_num,outer_points_num,true_set_points_num, percent_points_FP) = \
-    prediction_confidence_set(L, level, point_pred, se, G, mean_test_true = mean_test_true, use_true_contour = use_true_contour)
+    # construct confidence set using the new algorithm
+    (df_res, result_dict) = prediction_confidence_set(L, level, point_pred, se, G, 
+                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour)
+    result_dict['method'] = 'CS_on_mean'
+    # maxT step down for constructing confidence set
+    (df_res_T, result_dict_T) = maxT_step_down_confidence_set(L, level, point_pred, se, G, mean_test_true)
+    result_dict_T['method'] = 'step_maxT_on_mean'
+    r = [result_dict,result_dict_T]
+    #import pdb; pdb.set_trace()
     if pred_y:
         G_y, _ = process_boot_samples(mean_boot_y_l, point_pred, se_y, mean_test_true = mean_test_true, 
                                              MC = False, center_G = center_G, center_pred = center_pred)
-        (df_res_y, L_y, U_y, contain_y, contain_scb_y, contain_CS_scb_y, 
-         L1_y, L2_y, U1_y, U2_y, n_points_y, range_v_y, inner_points_num_y,outer_points_num_y,true_set_points_num_y, percent_points_FP_y) = \
-        prediction_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test, use_true_contour = use_true_contour)
-    
-        r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model,percent_points_FP, 0],
-                [contain_y, contain_scb_y, L_y, U_y, L1_y, L2_y, U1_y, U2_y, n_points_y, inner_points_num_y,outer_points_num_y,true_set_points_num_y, model, percent_points_FP_y,1]
-               ]
-    else:
-        r = [[contain, contain_scb, L, U, L1, L2, U1, U2, n_points, inner_points_num,outer_points_num,true_set_points_num, model,percent_points_FP, 0
-               ]]    
+        (df_res_y, result_dict_y) = prediction_confidence_set(L, level, point_pred, se_y, G_y, 
+                                                           mean_test_true = y_test, use_true_contour = use_true_contour)
+        result_dict_y['method'] = 'CS_on_y'
+        (df_res_T_y, result_dict_T_y) = maxT_step_down_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test)
+        result_dict_T_y['method'] = 'step_maxT_on_y'
+        r.extend([result_dict_y, result_dict_T_y])
     if return_plot:#only works for 1D case
         df_res = pd.concat([df_res, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
         df_res_y = pd.concat([df_res_y, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
@@ -152,10 +152,7 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                                 np.where(np.logical_and(df_res_y.outer, ~df_res_y.inner), 'uncertain', 'outside outer')
                                )
         CS_and_plot(df_res, df_res_y, level)
-    return pd.DataFrame(np.array(r), columns = ["contain","contain_scb","Lower_bound",
-                                                "Upper_bound", "L1", "L2", "U1", "U2", "points_in_e1", 
-                                                'inner_points_num', 'outer_points_num' ,'true_set_points_num', 
-                                                'model', 'percent_points_FP_inner','on_y'])
+    return pd.DataFrame.from_dict(r)
 
 
 
