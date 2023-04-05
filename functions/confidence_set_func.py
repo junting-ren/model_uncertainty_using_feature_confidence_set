@@ -351,9 +351,11 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         d = (mean - level)/se
     # Getting the number of points in the true set
     if mean_test_true is not None:
-        true_set_points_num = np.sum(mean_test_true>=level)
+        true_set_points_up_num = np.sum(mean_test_true>=level)
+        true_set_points_low_num = np.sum(mean_test_true<level)
     else:
         true_set_points_num = None
+        true_set_points_low_num = None
     positive_indx = d >= 0
     negative_indx = d < 0
     d_pos_sorted = np.sort(d[positive_indx])
@@ -371,8 +373,15 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         return pd.DataFrame(dict_), L, U, None, None, None
     else:# if there is True mean
         true_set = mean_test_true >= level
-        percent_points_FP = np.mean((dict_["inner"].astype(int) - true_set.astype(int))>=1) 
-        percent_points_FP = None if percent_points_FP==0 else percent_points_FP
+        # For classifying whether it is greater than c
+        precision_inner = 1-np.mean((dict_["inner"].astype(int) - true_set.astype(int))>=1)
+        sensitivity_inner = 1-np.mean((true_set.astype(int) - dict_["inner"].astype(int) )>=1)
+        # For classifying whether it is less than c
+        compl_outer = 1 - dict_["outer"].astype(int)# complement of outer set
+        true_set_less_c = (mean_test_true < level).astype(int)
+        precision_outer = 1-np.mean((compl_outer - true_set_less_c)>=1)
+        sensitivity_outer = 1-np.mean((true_set_less_c - compl_outer)>=1)
+        # Confidence set containment
         if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
             contain = True
         else:
@@ -386,6 +395,77 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         outer = high >= level
         contain_scb = np.all(np.logical_and(low<= mean_test_true, high>= mean_test_true))
         contain_CS_scb = True if np.all( (true_set.astype(int) - inner.astype(int)) >= 0 ) and np.all( (outer.astype(int) - true_set.astype(int)) >= 0 ) else False
-        return pd.DataFrame(dict_), L, U, contain, contain_scb, contain_CS_scb, L1, L2, U1, U2, n_points, range_v, inner_points_num,outer_points_num,true_set_points_num, percent_points_FP
+        agg_dict = {"contain":contain, "contain_scb":contain_scb,'contain_CS_scb':contain_CS_scb,
+                    'Lower_bound':L, 'Upper_bound': U, 
+                    'L1':L1, 'L2': L2, 'U1': U1, 'U2':U2, 'points_in_e1': n_points,
+                    'inner_points_num': inner_points_num,'outer_points_num':outer_points_num,
+                    'true_set_points_up_num':true_set_points_up_num, 'true_set_points_low_num':true_set_points_low_num,
+                    'precision_inner':precision_inner, 'sensitivity_inner':sensitivity_inner,
+                    'precision_outer':precision_outer,'sensitivity_outer':sensitivity_outer}
+        return pd.DataFrame(dict_), agg_dict
     
 
+def maxT_step_down_confidence_set(L, level, mean, se, G, mean_test_true = None):
+    alpha = 1-L
+    test_statistics = np.abs(mean-level)/se
+    # order the statistics and get the index ordering from smallest to largest
+    sorted_index = np.argsort(test_statistics)
+    # number of tests
+    I = G.shape[1]
+    # number of bootstrap
+    n_boot = G.shape[0]
+    # Empty matrix for saving the null statistic distribution
+    U_matrix = np.zeros(G.shape)
+    # Loop over the number bootstraps
+        # Loop over the index and get the threshold for each prediction
+    #import pdb; pdb.set_trace()
+    for b in range(n_boot):
+        for j in range(I):
+            index = sorted_index[j]
+            statistics = abs(G[b, index])
+            if j==0:
+                U_matrix[b, index] = statistics
+            else:
+                U_matrix[b, index] = max(U_matrix[b, sorted_index[j-1]],statistics)
+    #import pdb; pdb.set_trace()
+    # vector of p-values
+    p_values = np.zeros(I)
+    # Calculate the p value
+    for j in range(I):
+        p_values[j] = np.mean(U_matrix[:,j]>=test_statistics[j])
+    # Monotonicity constraint
+    #import pdb; pdb.set_trace()
+    for j in range(2,I+1):
+        p_values[sorted_index[I-j]] = max(p_values[sorted_index[I-j]], p_values[sorted_index[I-j+1]])
+    inner = np.logical_and(mean > level, p_values<alpha)
+    outer = np.logical_or(inner, p_values>alpha)
+    dict_ = {"mean": mean, "low": mean, "high": mean, "inner": inner, "outer": outer}
+    inner_points_num = np.sum(dict_['inner'])
+    outer_points_num = np.sum(dict_['outer'])
+    if mean_test_true is None:
+        return pd.DataFrame(dict_), L, None, None, None, None
+    else:# if there is True mean
+        true_set_points_up_num = np.sum(mean_test_true>=level)
+        true_set_points_low_num = np.sum(mean_test_true<level)
+        true_set = mean_test_true >= level
+        # For classifying whether it is greater than c
+        precision_inner = 1-np.mean((dict_["inner"].astype(int) - true_set.astype(int))>=1)
+        sensitivity_inner = 1-np.mean((true_set.astype(int) - dict_["inner"].astype(int) )>=1)
+        # For classifying whether it is less than c
+        compl_outer = 1 - dict_["outer"].astype(int)# complement of outer set
+        true_set_less_c = (mean_test_true < level).astype(int)
+        precision_outer = 1-np.mean((compl_outer - true_set_less_c)>=1)
+        sensitivity_outer = 1-np.mean((true_set_less_c - compl_outer)>=1)
+        # Confidence set containment
+        if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+                contain = True
+        else:
+            contain = False
+        agg_dict = {"contain":contain, "contain_scb":None,'contain_CS_scb':None,
+            'Lower_bound':L, 'Upper_bound': None, 
+            'L1':None, 'L2': None, 'U1': None, 'U2': None, 'points_in_e1': None,
+            'inner_points_num': inner_points_num,'outer_points_num':outer_points_num,
+            'true_set_points_up_num':true_set_points_up_num, 'true_set_points_low_num':true_set_points_low_num,
+            'precision_inner':precision_inner, 'sensitivity_inner':sensitivity_inner,
+            'precision_outer':precision_outer,'sensitivity_outer':sensitivity_outer}
+        return pd.DataFrame(dict_), agg_dict
