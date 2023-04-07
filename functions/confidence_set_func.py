@@ -78,7 +78,7 @@ def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = Fals
         return G, mean, se
 
 class cal_thres_at_q(object):
-    def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None):
+    def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None, blur_boundary = True):
         '''Initialize the function to calculate the threshold when lower bound equal to L at q quantile of the distances
 
         Parameters:
@@ -91,7 +91,7 @@ class cal_thres_at_q(object):
         e1: the inflated distance for above the level of interest
         e2: the inflated distance for below the level of interest
         G：The G statistics
-
+        blur_boundary: whether to take the absolute value around the boundary so 
         '''
         #import pdb; pdb.set_trace()
         self.G = G
@@ -116,6 +116,8 @@ class cal_thres_at_q(object):
         self.sup_lo1 = np.max(self.G[:, self.index_lo1],axis = 1) 
         self.inf_up2 = np.min(self.G[:, self.index_up2],axis = 1) 
         self.sup_lo2 = np.max(self.G[:, self.index_lo2],axis = 1) 
+        
+        self.blur_boundary = blur_boundary
     
     def binary_search(self):
         '''Binary search for the threshold a
@@ -192,7 +194,14 @@ class cal_thres_at_q(object):
             lowerbound1 specified in the paper
             lowerbound2 specified in the paper (probability minus the cardinality)
         '''
-        lower_bound_p1 = np.mean(np.logical_and((self.inf_up1 >= -a- self.r_inf_up1), (self.sup_lo1 < a +self.r_inf_lo1)))
+        #import pdb;pdb.set_trace()
+        if self.blur_boundary:
+            sup_1 = np.max( np.abs(np.concatenate([np.expand_dims(self.inf_up1,1), np.expand_dims(self.sup_lo1,1)], axis = 1)), 1)
+            r_inf_1 = min(self.r_inf_up1, self.r_inf_lo1)
+            lower_bound_p1 = np.mean(sup_1 < a + r_inf_1)
+        else:
+            lower_bound_p1 = np.mean(np.logical_and((self.inf_up1 >= -a- self.r_inf_up1), (self.sup_lo1 < a +self.r_inf_lo1)))
+        
         lower_bound1 = lower_bound_p1+np.mean(np.logical_and((np.min(self.G_up2,axis = 1)  >= -a- self.r_inf_up2), (np.max(self.G_lo2,axis = 1) < a +self.r_inf_lo2)))-1
         lower_bound2 = lower_bound_p1+(np.sum( np.mean((self.G_up2 >= -a- self.r_up2), axis =0 ))+np.sum(np.mean((self.G_lo2 < a+ self.r_lo2),axis = 0)))-(len(self.r_up2)+len(self.r_lo2))
         return lower_bound2, lower_bound1, lower_bound2
@@ -469,3 +478,53 @@ def maxT_step_down_confidence_set(L, level, mean, se, G, mean_test_true = None):
             'precision_inner':precision_inner, 'sensitivity_inner':sensitivity_inner,
             'precision_outer':precision_outer,'sensitivity_outer':sensitivity_outer}
         return pd.DataFrame(dict_), agg_dict
+
+    
+def p_values_confidence_set(L, level, mean, se, G, mean_test_true = None):
+    test_statistics = np.abs(mean-level)/se
+    c# number of tests
+    I = G.shape[1]
+    # number of bootstrap
+    n_boot = G.shape[0]
+    p_values = np.zeros(I)
+    for j in range(I):
+        p_values[j] = np.mean(test_statistics[j]>np.abs(G[:,j]))
+    
+    def p_to_CS(adjust_p, level, ):
+        inner = np.logical_and(mean > level, p_values<alpha)
+        outer = np.logical_or(inner, p_values>alpha)
+        dict_ = {"mean": mean, "low": mean, "high": mean, "inner": inner, "outer": outer}
+        inner_points_num = np.sum(dict_['inner'])
+        outer_points_num = np.sum(dict_['outer'])
+        if mean_test_true is None:
+            return pd.DataFrame(dict_), L, None, None, None, None
+        else:# if there is True mean
+            true_set_points_up_num = np.sum(mean_test_true>=level)
+            true_set_points_low_num = np.sum(mean_test_true<level)
+            true_set = mean_test_true >= level
+            # For classifying whether it is greater than c
+            precision_inner = 1-np.mean((dict_["inner"].astype(int) - true_set.astype(int))>=1)
+            sensitivity_inner = 1-np.mean((true_set.astype(int) - dict_["inner"].astype(int) )>=1)
+            # For classifying whether it is less than c
+            compl_outer = 1 - dict_["outer"].astype(int)# complement of outer set
+            true_set_less_c = (mean_test_true < level).astype(int)
+            precision_outer = 1-np.mean((compl_outer - true_set_less_c)>=1)
+            sensitivity_outer = 1-np.mean((true_set_less_c - compl_outer)>=1)
+            # Confidence set containment
+            if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+                    contain = True
+            else:
+                contain = False
+            agg_dict = {"contain":contain, "contain_scb":None,'contain_CS_scb':None,
+                'Lower_bound':L, 'Upper_bound': None, 
+                'L1':None, 'L2': None, 'U1': None, 'U2': None, 'points_in_e1': None,
+                'inner_points_num': inner_points_num,'outer_points_num':outer_points_num,
+                'true_set_points_up_num':true_set_points_up_num, 'true_set_points_low_num':true_set_points_low_num,
+                'precision_inner':precision_inner, 'sensitivity_inner':sensitivity_inner,
+                'precision_outer':precision_outer,'sensitivity_outer':sensitivity_outer}
+        return pd.DataFrame(dict_), agg_dict
+    # Bonferroni confidence set
+    p_values_Bonf = p_values*I
+    
+   
+    
