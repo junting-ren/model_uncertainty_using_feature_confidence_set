@@ -1,5 +1,5 @@
 from CS_toolbox import bootstrap,process_boot_samples
-from confidence_set_func import prediction_confidence_set, maxT_step_down_confidence_set
+from confidence_set_func import prediction_confidence_set, multiple_testing_confidence_set
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -129,9 +129,14 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                                                    mean_test_true = mean_test_true, use_true_contour = use_true_contour)
     result_dict['method'] = 'CS_on_mean'
     # maxT step down for constructing confidence set
-    (df_res_T, result_dict_T) = maxT_step_down_confidence_set(L, level, point_pred, se, G, mean_test_true)
+    multiple_testing = multiple_testing_confidence_set(L, level, point_pred, se, G, mean_test_true)
+    _,result_dict_T = multiple_testing.maxT_step_down_confidence_set()
     result_dict_T['method'] = 'step_maxT_on_mean'
-    r = [result_dict,result_dict_T]
+    _,result_dict_Bonf = multiple_testing.Bonf_confidence_set()
+    result_dict_Bonf['method'] = 'Bonf_on_mean'
+    _,result_dict_Holm = multiple_testing.Holm_confidence_set()
+    result_dict_Holm['method'] = 'Holm_on_mean'
+    r = [result_dict,result_dict_T,result_dict_Bonf,result_dict_Holm]
     #import pdb; pdb.set_trace()
     if pred_y:
         G_y, _ = process_boot_samples(mean_boot_y_l, point_pred, se_y, mean_test_true = mean_test_true, 
@@ -139,9 +144,14 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
         (df_res_y, result_dict_y) = prediction_confidence_set(L, level, point_pred, se_y, G_y, 
                                                            mean_test_true = y_test, use_true_contour = use_true_contour)
         result_dict_y['method'] = 'CS_on_y'
-        (df_res_T_y, result_dict_T_y) = maxT_step_down_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test)
+        multiple_testing = multiple_testing_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test)
+        _,result_dict_T_y = multiple_testing.maxT_step_down_confidence_set()
         result_dict_T_y['method'] = 'step_maxT_on_y'
-        r.extend([result_dict_y, result_dict_T_y])
+        _,result_dict_Bonf_y = multiple_testing.Bonf_confidence_set()
+        result_dict_Bonf_y['method'] = 'Bonf_on_y'
+        _,result_dict_Holm_y = multiple_testing.Holm_confidence_set()
+        result_dict_Holm_y['method'] = 'Holm_on_y'
+        r.extend([result_dict_y, result_dict_T_y, result_dict_Bonf_y, result_dict_Holm_y])
     if return_plot:#only works for 1D case
         df_res = pd.concat([df_res, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
         df_res_y = pd.concat([df_res_y, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
