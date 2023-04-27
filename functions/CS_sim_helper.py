@@ -126,7 +126,7 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                                          MC = False, center_G = center_G, center_pred = center_pred)
     # construct confidence set using the new algorithm
     (df_res, result_dict) = prediction_confidence_set(L, level, point_pred, se, G, 
-                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour)
+                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour, test_null = False)
     result_dict['method'] = 'CS_on_mean'
     # maxT step down for constructing confidence set
     multiple_testing = multiple_testing_confidence_set(L, level, point_pred, se, G, mean_test_true)
@@ -142,7 +142,7 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
         G_y, _ = process_boot_samples(mean_boot_y_l, point_pred, se_y, mean_test_true = mean_test_true, 
                                              MC = False, center_G = center_G, center_pred = center_pred)
         (df_res_y, result_dict_y) = prediction_confidence_set(L, level, point_pred, se_y, G_y, 
-                                                           mean_test_true = y_test, use_true_contour = use_true_contour)
+                                                           mean_test_true = y_test, use_true_contour = use_true_contour, test_null = False)
         result_dict_y['method'] = 'CS_on_y'
         multiple_testing = multiple_testing_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test)
         _,result_dict_T_y = multiple_testing.maxT_step_down_confidence_set()
