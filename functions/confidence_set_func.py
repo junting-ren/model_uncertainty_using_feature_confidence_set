@@ -101,21 +101,26 @@ class cal_thres_at_q(object):
             e2 = np.quantile(d_pos_sorted, q, method = 'closest_observation')
         (self.index_up1, self.index_up2, self.index_lo1, self.index_lo2, 
          self.r_up1, self.r_up2, self.r_lo1, self.r_lo2, self.index_set_len) = self.cal_quantities(d, e1, e2)
+        self.n_up1 = len(self.r_up1)
+        self.n_lo1 = len(self.r_lo1)
+        self.n_up2 = len(self.r_up2)
+        self.n_lo2 = len(self.r_lo2)
         # fixed constants on the right hand side of the probability
-        self.r_inf_up1 = np.min(self.r_up1)
-        self.r_inf_lo1 = np.min(self.r_lo1)
-        self.r_inf_up2 = np.min(self.r_up2)
-        self.r_inf_lo2 = np.min(self.r_lo2)
-        self.r_sup_up1 = np.max(self.r_up1)
-        self.r_sup_lo1 = np.max(self.r_lo1)
+        self.r_inf_up1 = np.min(self.r_up1) if self.n_up1>0 else None
+        self.r_inf_lo1 = np.min(self.r_lo1) if self.n_lo1>0 else None
+        self.r_inf_up2 = np.min(self.r_up2) if self.n_up2>0 else None
+        self.r_inf_lo2 = np.min(self.r_lo2) if self.n_lo2>0 else None
+        self.r_sup_up1 = np.max(self.r_up1) if self.n_up1>0 else None
+        self.r_sup_lo1 = np.max(self.r_lo1) if self.n_lo1>0 else None
         # The G statistics
-        self.G_up2 = self.G[:, self.index_up2]
-        self.G_lo2 = self.G[:, self.index_lo2]
+        #import pdb; pdb.set_trace()
+        self.G_up2 = self.G[:, self.index_up2] if self.n_up2>0 else None
+        self.G_lo2 = self.G[:, self.index_lo2] if self.n_lo2>0 else None
         # The inf or sup of G
-        self.inf_up1 = np.min(self.G[:, self.index_up1],axis = 1) 
-        self.sup_lo1 = np.max(self.G[:, self.index_lo1],axis = 1) 
-        self.inf_up2 = np.min(self.G[:, self.index_up2],axis = 1) 
-        self.sup_lo2 = np.max(self.G[:, self.index_lo2],axis = 1) 
+        self.inf_up1 = np.min(self.G[:, self.index_up1],axis = 1) if self.n_up1>0 else None
+        self.sup_lo1 = np.max(self.G[:, self.index_lo1],axis = 1) if self.n_lo1>0 else None
+        self.inf_up2 = np.min(self.G[:, self.index_up2],axis = 1) if self.n_up2>0 else None
+        self.sup_lo2 = np.max(self.G[:, self.index_lo2],axis = 1) if self.n_lo2>0 else None
         
         self.blur_boundary = blur_boundary
     
@@ -196,14 +201,41 @@ class cal_thres_at_q(object):
         '''
         #import pdb;pdb.set_trace()
         if self.blur_boundary:
-            sup_1 = np.max( np.abs(np.concatenate([np.expand_dims(self.inf_up1,1), np.expand_dims(self.sup_lo1,1)], axis = 1)), 1)
-            r_inf_1 = min(self.r_inf_up1, self.r_inf_lo1)
+            #import pdb; pdb.set_trace()
+            if self.n_up1>0 and self.n_lo1>0:
+                sup_1 = np.max( np.abs(np.concatenate([np.expand_dims(self.inf_up1,1), np.expand_dims(self.sup_lo1,1)], axis = 1)), 1)
+                #import pdb; pdb.set_trace()
+                r_inf_1 = min(self.r_inf_up1, self.r_inf_lo1)
+            else: 
+                if self.n_up1>0:
+                    #import pdb;pdb.set_trace()
+                    sup_1 = np.abs(self.inf_up1)
+                    r_inf_1 = self.r_inf_up1
+                else:
+                    sup_1 = np.abs(self.sup_lo1)
+                    r_inf_1 = self.r_inf_lo1
             lower_bound_p1 = np.mean(sup_1 < a + r_inf_1)
         else:
-            lower_bound_p1 = np.mean(np.logical_and((self.inf_up1 >= -a- self.r_inf_up1), (self.sup_lo1 < a +self.r_inf_lo1)))
-        
-        lower_bound1 = lower_bound_p1+np.mean(np.logical_and((np.min(self.G_up2,axis = 1)  >= -a- self.r_inf_up2), (np.max(self.G_lo2,axis = 1) < a +self.r_inf_lo2)))-1
-        lower_bound2 = lower_bound_p1+(np.sum( np.mean((self.G_up2 >= -a- self.r_up2), axis =0 ))+np.sum(np.mean((self.G_lo2 < a+ self.r_lo2),axis = 0)))-(len(self.r_up2)+len(self.r_lo2))
+            if self.n_up1>0 and self.n_lo1>0:
+                lower_bound_p1 = np.mean(np.logical_and((self.inf_up1 >= -a- self.r_inf_up1), (self.sup_lo1 < a +self.r_inf_lo1)))
+            else:
+                if self.n_up1>1:
+                    lower_bound_p1 = np.mean((self.inf_up1 >= -a- self.r_inf_up1))
+                else:
+                    lower_bound_p1 = np.mean((self.sup_lo1 >= -a- self.r_inf_lo1))
+        if self.n_up2>0 and self.n_lo2>0:
+            lower_bound1 = lower_bound_p1+np.mean(np.logical_and((np.min(self.G_up2,axis = 1)  >= -a- self.r_inf_up2), (np.max(self.G_lo2,axis = 1) < a +self.r_inf_lo2)))-1
+            lower_bound2 = lower_bound_p1+(np.sum( np.mean((self.G_up2 >= -a- self.r_up2), axis =0 ))+np.sum(np.mean((self.G_lo2 < a+ self.r_lo2),axis = 0)))-(len(self.r_up2)+len(self.r_lo2))
+        else:
+            if self.n_up2>0:
+                lower_bound1 = lower_bound_p1+np.mean((np.min(self.G_up2,axis = 1)  >= -a- self.r_inf_up2))-1
+                lower_bound2 = lower_bound_p1+np.sum( np.mean((self.G_up2 >= -a- self.r_up2), axis =0 ))-len(self.r_up2)
+            elif self.n_lo2>0:
+                lower_bound1 = lower_bound_p1+np.mean((np.max(self.G_lo2,axis = 1) < a +self.r_inf_lo2))-1
+                lower_bound2 = lower_bound_p1+np.sum(np.mean((self.G_lo2 < a+ self.r_lo2),axis = 0))-len(self.r_lo2)
+            else:
+                lower_bound1 = lower_bound_p1
+                lower_bound2 = lower_bound_p1
         return lower_bound2, lower_bound1, lower_bound2
 
     def cal_upper_bound(self,a):
@@ -217,8 +249,14 @@ class cal_thres_at_q(object):
         -----------------
         the upper bound evaluated at the specific quantile of the distances.
         '''
-        return np.mean(np.logical_and((self.inf_up1 >= -a- self.r_sup_up1), (self.sup_lo1 < a +self.r_sup_lo1)))
-    
+        if self.n_up1>0 and self.n_lo1>0:
+            upper_bound = np.mean(np.logical_and((self.inf_up1 >= -a- self.r_sup_up1), (self.sup_lo1 < a +self.r_sup_lo1)))
+        else:
+            if self.n_up1>0:
+                upper_bound = np.mean((self.inf_up1 >= -a- self.r_sup_up1))
+            else:
+                upper_bound = np.mean((self.sup_lo1 < a +self.r_sup_lo1))
+        return upper_bound
 
 
 def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
@@ -247,11 +285,11 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         The range between the upper and lower bound
     '''
     # the smallest distance possible
-    e1 = d_pos_sorted[0]
-    e2 = d_neg_sorted[0]
+    e1 = d_pos_sorted[0] if len(d_pos_sorted)>0 else 0
+    e2 = d_neg_sorted[0] if len(d_neg_sorted)>0 else 0
     max_smallest = max(e1,e2)
-    largest_pos = max(d_pos_sorted)
-    largest_neg = max(d_neg_sorted)
+    largest_pos = max(d_pos_sorted) if len(d_pos_sorted)>0 else 0
+    largest_neg = max(d_neg_sorted) if len(d_neg_sorted)>0 else 0
     search_func_min = cal_thres_at_q(None, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2)
     # grid search
     range_min = float('inf')
@@ -262,18 +300,18 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
     for e in d_abs_sorted:
         i += 1
         #import pdb; pdb.set_trace()
-        if e < max_smallest: # if this is true, there is one side without any point
-            continue
-        if e >= largest_pos and e >= largest_neg:#if there is no points in the second part for both positive and negative distance
-            break
-        if e >= largest_pos:# e1 stays below largest positive so that we have something in the second part for positive side
-            e1 = largest_pos -0.01
-            e2 = e
-        elif e >=  largest_neg:# e2 stays below largest negative so that we have something in the second part for negative side
-            e1 = e
-            e2 = largest_neg - 0.01
-        else: # increase both distance, only one side will include one more point
-            e1, e2 = e,e
+        # if e < max_smallest: # if this is true, there is one side without any point
+        #     continue
+        # if e >= largest_pos and e >= largest_neg:#if there is no points in the second part for both positive and negative distance
+        #     break
+        # if e >= largest_pos:# e1 stays below largest positive so that we have something in the second part for positive side
+        #     e1 = largest_pos -0.01
+        #     e2 = e
+        # elif e >=  largest_neg:# e2 stays below largest negative so that we have something in the second part for negative side
+        #     e1 = e
+        #     e2 = largest_neg - 0.01
+        # else: # increase both distance, only one side will include one more point
+        e1, e2 = e,e
         # e1 = d_pos_sorted[i]
         # e2 =  d_neg_sorted[i]
         search_func_cur = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2)
@@ -323,7 +361,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         #print('goldsec once')
     # return a, L, U
     
-def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False):
+def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, test_null = False):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -389,7 +427,7 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
             precision_inner = 1
         # out of the all the true positive, percentage of them classified as positive
         sensitivity_inner = 1-np.sum((true_set.astype(int) - 
-                                      dict_["inner"].astype(int) )>=1)/np.sum(true_set.astype(int) )
+                                      dict_["inner"].astype(int) )>=1)/np.sum(true_set.astype(int) ) if np.sum(true_set.astype(int) )>0 else None
         # For classifying whether it is less than c
         compl_outer = 1 - dict_["outer"].astype(int)# complement of outer set
         true_set_less_c = (mean_test_true < level).astype(int)
@@ -397,12 +435,21 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
             precision_outer = 1-np.sum((compl_outer - true_set_less_c)>=1)/np.sum(compl_outer)
         else:
             precision_outer = 1
-        sensitivity_outer = 1-np.sum((true_set_less_c - compl_outer)>=1)/np.sum(true_set_less_c)
+        sensitivity_outer = 1-np.sum((true_set_less_c - compl_outer)>=1)/np.sum(true_set_less_c) if np.sum(true_set_less_c)>0 else None
         # Confidence set containment
-        if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
-            contain = True
+        if test_null:
+            #import pdb;pdb.set_trace()
+            null_set = mean_test_true==level
+            signi_set = np.logical_or(dict_["inner"],~dict_["outer"])
+            if np.all( ((1-signi_set.astype(int)) - null_set.astype(int)) >=0):
+                contain = True
+            else:
+                contain = False
         else:
-            contain = False
+            if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+                contain = True
+            else:
+                contain = False
         # Getting the containment for the whole set SCB
         r_max_l = np.max(np.abs(G),axis = 1)
         thres = np.quantile(r_max_l, q = 1 - 0.05)
@@ -440,7 +487,7 @@ class multiple_testing_confidence_set(object):
             self.true_set_points_low_num = None
             
     
-    def p_to_CS(self, adjust_p):
+    def p_to_CS(self, adjust_p, test_null = False):
         inner = np.logical_and(self.mean > self.level, adjust_p<self.alpha)
         outer = np.logical_or(inner, adjust_p>self.alpha)
         dict_ = {"mean": self.mean, "low": self.mean, "high": self.mean, "inner": inner, "outer": outer}
@@ -457,7 +504,7 @@ class multiple_testing_confidence_set(object):
                 precision_inner = 1
             # out of the all the true positive, percentage of them classified as positive
             sensitivity_inner = 1-np.sum((true_set.astype(int) - 
-                                          dict_["inner"].astype(int) )>=1)/np.sum(true_set.astype(int) )
+                                          dict_["inner"].astype(int) )>=1)/np.sum(true_set.astype(int) ) if np.sum(true_set.astype(int) )>0 else None
             # For classifying whether it is less than c
             compl_outer = 1 - dict_["outer"].astype(int)# complement of outer set
             true_set_less_c = (self.mean_test_true < self.level).astype(int)
@@ -465,12 +512,20 @@ class multiple_testing_confidence_set(object):
                 precision_outer = 1-np.sum((compl_outer - true_set_less_c)>=1)/np.sum(compl_outer)
             else:
                 precision_outer = 1
-            sensitivity_outer = 1-np.sum((true_set_less_c - compl_outer)>=1)/np.sum(true_set_less_c)
+            sensitivity_outer = 1-np.sum((true_set_less_c - compl_outer)>=1)/np.sum(true_set_less_c) if np.sum(true_set_less_c)>0 else None
             # Confidence set containment
-            if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+            if test_null:
+                null_set = self.mean_test_true==self.level
+                signi_set = np.logical_or(dict_["inner"],~dict_["outer"])
+                if np.all( ((1-signi_set.astype(int)) - null_set.astype(int)) >=0):
                     contain = True
+                else:
+                    contain = False
             else:
-                contain = False
+                if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+                    contain = True
+                else:
+                    contain = False
             agg_dict = {"contain":contain, "contain_scb":None,'contain_CS_scb':None,
                 'Lower_bound':self.L, 'Upper_bound': None, 
                 'L1':None, 'L2': None, 'U1': None, 'U2': None, 'points_in_e1': None,
