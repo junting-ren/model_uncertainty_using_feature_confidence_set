@@ -171,9 +171,9 @@ def CS_and_plot(df_res, df_res_y, level):
                       guide = guide_legend(override_aes = {'linetype': ['-', 'None','None'],
                                                             'shape':['None', 'o', 'o']} ) 
                       )+
-     theme_light()+
+     theme_light()+theme(legend_position="bottom", legend_box_spacing=.2)+
      labs(title = '', y = 'Outcome')
-    ).save('raw_points.jpg')
+    ).save('raw_points.jpg', dpi = 300)
     # Confidence set for the true mean
     (ggplot() +
      geom_line(df_res, aes(x = 'x', y = 'f(x)', color = "'f(x)'")) + 
@@ -183,21 +183,21 @@ def CS_and_plot(df_res, df_res_y, level):
                                                             'shape':['None', 'o', 'o', 'o']} )
                       )+
      geom_hline(yintercept = level, linetype = 'dashed')+
-     theme_light()+
+     theme_light()+theme(legend_position="bottom", legend_box_spacing=.2)+
      labs(title = 'Confidence sets for f(x)', y = 'Outcome')
-    ).save('CS_f.jpg')
+    ).save('CS_f.jpg', dpi = 300)
     # Confidence set for the unobserved outcome
     (ggplot() +
-     geom_point(df_res_y, aes('x', 'y', color = "'y'")) + 
-     geom_point(df_res_y, aes('x', 'prediction', color = 'Sets'))+
-     scale_color_manual(name = ' ',values = {'y':'brown', 'inner':'red', 'uncertain':'green', 'outside outer':'blue'},
+     geom_point(df_res_y, aes('x', 'y', color = 'Sets')) + 
+     geom_point(df_res_y, aes('x', 'prediction', color = "'prediction'"))+
+     scale_color_manual(name = ' ',values = {'prediction':'gray', 'inner':'red', 'uncertain':'green', 'outside outer':'blue'},
                         guide = guide_legend(override_aes = {'linetype': ['None', 'None','None', 'None'],
                                                             'shape':['o', 'o', 'o', 'o']} )
                       )+
      geom_hline(yintercept = level, linetype = 'dashed')+
-     theme_light()+
+     theme_light()+theme(legend_position="bottom", legend_box_spacing=.2)+
      labs(title = 'Confidence sets for y', y = 'Outcome')
-    ).save('CS_y.jpg')
+    ).save('CS_y.jpg', dpi = 300)
 
 
 
