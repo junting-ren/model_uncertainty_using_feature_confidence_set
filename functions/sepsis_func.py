@@ -344,19 +344,19 @@ def train_model(X_train, y_train, X_val, y_val, best_param):
                                   colsample_bytree = best_param['colsample_bytree'],
                                   reg_alpha = best_param['reg_alpha'],
                                   reg_lambda = best_param['reg_lambda'],
-                                  objective = "binary:logistic"
+                                  objective = "binary:logistic", 
+                                  eval_metric='error',
+                                  early_stopping_rounds=80, 
                                   )
 
-    xgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)], eval_metric='error',
-                  early_stopping_rounds=80, verbose=False)
-    y_tr_pred = (xgb_model.predict_proba(X_train, ntree_limit=xgb_model.best_ntree_limit))[:, 1]
+    xgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)],verbose=False)
+    y_tr_pred = (xgb_model.predict_proba(X_train, iteration_range=(0,xgb_model.best_iteration+1)))[:, 1]
     train_auc = roc_auc_score(y_train, y_tr_pred)
     print('training dataset AUC: ' + str(train_auc))
     y_tr_class = [0 if i <= 0.5 else 1 for i in y_tr_pred]
     acc = accuracy_score(y_train, y_tr_class)
     print('training dataset acc: ' + str(acc))
-
-    y_vd_pred = (xgb_model.predict_proba(X_val, ntree_limit=xgb_model.best_ntree_limit))[:, 1]
+    y_vd_pred = (xgb_model.predict_proba(X_val, iteration_range=(0,xgb_model.best_iteration+1)))[:, 1]
     valid_auc = roc_auc_score(y_val, y_vd_pred)
     print('validation dataset AUC: ' + str(valid_auc))
     y_val_class = [0 if i <= 0.5 else 1 for i in y_vd_pred]
