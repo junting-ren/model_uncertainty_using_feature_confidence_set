@@ -140,6 +140,7 @@ class cal_thres_at_q(object):
         a_med = (a_high+a_low)/2
         lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_med)
         j = 1
+        #import pdb; pdb.set_trace()
         while np.abs(lower_b_med-self.L)>0.001 and j < 100:
             if lower_b_med > self.L:
                 a_high = a_med
@@ -297,6 +298,8 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
     q = 0
     #for q in np.arange(0.01,0.6,0.01):
     i = 0
+    patience = 0
+    max_patience = 300
     for e in d_abs_sorted:
         i += 1
         #import pdb; pdb.set_trace()
@@ -318,10 +321,14 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         a_q, lowerb, lowerb1, lowerb2, upperb1 = search_func_cur.binary_search()
         upperb2 = search_func_min.cal_upper_bound(a_q)
         #upperb = min(upperb1,upperb2)
+        if i %100==0:
+            print(f'finished %s' %(i/len(d_abs_sorted)))
         upperb = upperb1
         range_ = upperb - lowerb
         range_v.append((e, range_))
+        patience += 1
         if range_ < range_min:
+            patience = 0
             range_min = range_
             a = a_q
             L1 = lowerb1
@@ -331,6 +338,8 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
             L = lowerb
             U = upperb
             n_points = i
+        if patience> max_patience:
+            break
     return a, L, U, L1, L2, U1,U2, n_points, range_v
     # initialize the golden search parameters
     # q0 = 0
