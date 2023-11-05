@@ -477,6 +477,54 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
                     'precision_outer':precision_outer,'sensitivity_outer':sensitivity_outer}
         return pd.DataFrame(dict_), agg_dict
     
+def naive_CS_method(L, level, mean_boot_l, mean_test_true = None):
+    #import pdb; pdb.set_trace()
+    percent_above = np.mean(mean_boot_l > level, axis = 0)
+    index_inner = percent_above > L
+    percent_below = np.mean(mean_boot_l < level, axis = 0)
+    index_outer = ~(percent_below > L)
+    dict_ = {"mean": None, "low": None, "high": None, "inner": index_inner, "outer": index_outer}
+    inner_points_num = np.sum(dict_['inner'])
+    outer_points_num = np.sum(dict_['outer'])
+    # Whether there is true mean or not
+    if mean_test_true is None:
+        return pd.DataFrame(dict_), L, None, None, None, None
+    else:# if there is True mean
+        true_set_points_up_num = np.sum(mean_test_true>=level)
+        true_set_points_low_num = np.sum(mean_test_true<level)        
+        true_set = mean_test_true >= level
+        # For classifying whether it is greater than c
+        if np.sum(dict_["inner"].astype(int) )>0:
+            precision_inner = 1-np.sum((dict_["inner"].astype(int) - true_set.astype(int))>=1)/np.sum(dict_["inner"].astype(int) )
+        else:
+            precision_inner = 1
+        # out of the all the true positive, percentage of them classified as positive
+        sensitivity_inner = 1-np.sum((true_set.astype(int) - 
+                                      dict_["inner"].astype(int) )>=1)/np.sum(true_set.astype(int) ) if np.sum(true_set.astype(int) )>0 else None
+        # For classifying whether it is less than c
+        compl_outer = 1 - dict_["outer"].astype(int)# complement of outer set
+        true_set_less_c = (mean_test_true < level).astype(int)
+        if np.sum(compl_outer)>0:
+            precision_outer = 1-np.sum((compl_outer - true_set_less_c)>=1)/np.sum(compl_outer)
+        else:
+            precision_outer = 1
+        sensitivity_outer = 1-np.sum((true_set_less_c - compl_outer)>=1)/np.sum(true_set_less_c) if np.sum(true_set_less_c)>0 else None
+        # Confidence set containment
+        if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+            contain = True
+        else:
+            contain = False
+        # Getting the containment for the whole set SCB
+        contain_scb = None
+        contain_CS_scb = None
+        agg_dict = {"contain":contain, "contain_scb":contain_scb,'contain_CS_scb':contain_CS_scb,
+                    'Lower_bound':L, 'Upper_bound': None, 
+                    'L1':None, 'L2': None, 'U1': None, 'U2':None, 'points_in_e1': None,
+                    'inner_points_num': inner_points_num,'outer_points_num':outer_points_num,
+                    'true_set_points_up_num':true_set_points_up_num, 'true_set_points_low_num':true_set_points_low_num,
+                    'precision_inner':precision_inner, 'sensitivity_inner':sensitivity_inner,
+                    'precision_outer':precision_outer,'sensitivity_outer':sensitivity_outer}
+        return pd.DataFrame(dict_), agg_dict
 
 class multiple_testing_confidence_set(object):
     def __init__(self, L, level, mean, se, G, mean_test_true = None):
@@ -494,7 +542,7 @@ class multiple_testing_confidence_set(object):
         else:
             self.true_set_points_num = None
             self.true_set_points_low_num = None
-            
+        
     
     def p_to_CS(self, adjust_p, test_null = False):
         inner = np.logical_and(self.mean > self.level, adjust_p<self.alpha)
