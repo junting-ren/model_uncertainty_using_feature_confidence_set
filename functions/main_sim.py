@@ -15,22 +15,22 @@ from models import NueralNet, logistic_regression
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-file_name = 'neural_net_sim_'+date+'.csv'
-folder_path = './non_linear_result'
+file_name = 'linear_regression_'+date+'.csv'
+folder_path = './linear_result'
 file_name = os.path.join(folder_path, file_name)
 if __name__ ==  '__main__': 
     df_total = pd.DataFrame()
     n_sim = 500
     L_v = [0.9, 0.6]
     level_v = [2]
-    models_l_v = [[NueralNet]]
-    models_kwargs_l_v = [[{'n_iter':500,'patience':100,'input_size': 1, 'h_sizes':[40,40]}]]
-    N_v = [100, 200, 400]
-    N_test_v = [200]
-    p_v = [1]
+    models_l_v = [[LinearRegression]]
+    models_kwargs_l_v = [[{}]]
+    N_v = [100, 200, 400, 800]
+    N_test_v = [500]
+    p_v = [3, 6, 10]
     error_sd_v = [1]
     data_sim_func_v = [generate_sim_data]
-    data_kwargs_v = [{'transform_func':transform_X, 'beta':np.array([1,2,3,4]), 'uniform_range_x':[-2,2]}]
+    data_kwargs_v = [{'uniform_range_x':[-2,2]}]
     center_G_v = [True]
     center_pred_v = [False]
     use_true_contour_v = [False]
