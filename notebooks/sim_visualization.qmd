@@ -75,6 +75,8 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))
 ```
 
+## Logistic regression
+
 ```{r, fig.width=10}
 # Load the CSV file
 sim_result <- read.csv('../linear_result/logistic_regression_18072024.csv')
