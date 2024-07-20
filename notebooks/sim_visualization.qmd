@@ -1,0 +1,120 @@
+---
+title: "Simulation visualization"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(ggh4x)
+library(RColorBrewer)
+theme_set(theme_bw() +
+  theme(
+    legend.position = "none",
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    strip.background = element_rect(fill = "white", colour = "black"),
+    panel.spacing.x = unit(1, "line"),
+    panel.border = element_rect(color = "gray", fill = NA),
+    axis.line.y = element_line(size = 0.5, linetype = "solid", colour = "black"),
+    axis.line.x = element_line(size = 0.5, linetype = "solid", colour = "black"),
+    axis.text.x = element_text(face = "bold"),
+    axis.text.y = ggtext::element_markdown(),
+    strip.text.x = element_text(face = "bold", size = 12),
+    strip.text.y = element_text(face = "bold", size = 12)
+  )
+)
+
+```
+
+# Linear model visualization
+
+## Linear regression
+
+```{r, fig.width=10}
+# Load the CSV file
+sim_result <- read.csv('../linear_result/linear_regression_18072024.csv')
+
+# Print unique values
+print(unique(sim_result$data_kwargs))
+print(unique(sim_result$model_kwargs_l))
+
+# Select specific columns
+sim_result <- sim_result %>%
+  select(L, N, p, method, Lower_bound, contain, Upper_bound, points_in_e1, inner_points_num, outer_points_num)
+
+# Optionally filter the data
+sim_result_sub <- sim_result # %>% filter(p == 6) # %>% filter(N != 800) # %>% filter(method == 'CS_on_mean')
+
+# Drop 'Lower_bound' column and rename others
+t <- sim_result_sub %>%
+  select(-Lower_bound) %>%
+  rename(TLB = L,
+         Coverage = contain,
+         EUB = Upper_bound,
+         `Points in IB` = points_in_e1,
+         `Inner Set` = inner_points_num,
+         `Outer set` = outer_points_num) %>%
+  mutate(Coverage = ifelse(Coverage=="True",1,0)) %>% 
+  group_by(p, TLB, N, method) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
+         Method = ifelse(grepl("CS", method), "CS", "Naive")
+         )
+
+
+ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
+  geom_bar(stat = "identity", color="black", position = position_dodge(), width = 0.7) +
+  geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
+  geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_nested(p ~ TLB+`Outcome Type`, labeller = labeller(p = label_both, TLB = label_both)) +
+  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Model") +
+  theme(legend.position = "bottom") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+```
+
+```{r, fig.width=10}
+# Load the CSV file
+sim_result <- read.csv('../linear_result/logistic_regression_18072024.csv')
+
+# Print unique values
+print(unique(sim_result$data_kwargs))
+print(unique(sim_result$model_kwargs_l))
+
+# Select specific columns
+sim_result <- sim_result %>%
+  select(L, N, p, method, Lower_bound, contain, Upper_bound, points_in_e1, inner_points_num, outer_points_num)
+
+# Optionally filter the data
+sim_result_sub <- sim_result # %>% filter(p == 6) # %>% filter(N != 800) # %>% filter(method == 'CS_on_mean')
+
+# Drop 'Lower_bound' column and rename others
+t <- sim_result_sub %>%
+  select(-Lower_bound) %>%
+  rename(TLB = L,
+         Coverage = contain,
+         EUB = Upper_bound,
+         `Points in IB` = points_in_e1,
+         `Inner Set` = inner_points_num,
+         `Outer set` = outer_points_num) %>%
+  mutate(Coverage = ifelse(Coverage=="True",1,0)) %>% 
+  group_by(p, TLB, N, method) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Class likelihood", "Observed Y"),
+         Method = ifelse(grepl("CS", method), "CS", "Naive")
+         )
+
+
+ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
+  geom_bar(stat = "identity", color="black", position = position_dodge(), width = 0.7) +
+  geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
+  geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_nested(p ~ TLB+`Outcome Type`, labeller = labeller(p = label_both, TLB = label_both)) +
+  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Model") +
+  theme(legend.position = "bottom") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+```
