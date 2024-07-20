@@ -12,13 +12,18 @@ import torch
 # custom functions
 from CS_sim_helper import sim_CS_wrapper, generate_sim_data,check_overfitting, transform_X_poly,transform_X
 from models import NueralNet, logistic_regression
+import argparse
+
 
 today = date.today()
 date = today.strftime("%d%m%Y")
-model_type = "linear_regression"
+
 if __name__ ==  '__main__': 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default='linear_regression')
+    model_type = parser.parse_args().model
     df_total = pd.DataFrame()
-    n_sim = 500
+    n_sim = 1000
     n_boot_v = [300]
     L_v = [0.9, 0.6]
     N_v = [100, 200, 400, 800]
