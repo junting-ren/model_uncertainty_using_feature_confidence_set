@@ -47,6 +47,14 @@ if __name__ ==  '__main__':
         models_kwargs_l_v = [[{}]]
         data_kwargs_v = [{'uniform_range_x':[-2,2]}]
         folder_path = './linear_result'
+    elif model_type == "neural_net":
+        #n_sim = 10 #Test the simulation
+        level_v = [2]
+        models_l_v = [[NueralNet]]
+        models_kwargs_l_v = [[{'n_iter':200,'patience':100,'input_size': 1, 'h_sizes':[40,40]}]]
+        p_v = [1] # overwrite 
+        data_kwargs_v = [{'transform_func':transform_X, 'beta':np.array([1,2,3,4]), 'uniform_range_x':[-2,2]}]
+        folder_path = './nonlinear_result'
     file_name = model_type+'_'+date+'.csv'
     if not os.path.exists(folder_path):
         os.mkdir(folder_path)

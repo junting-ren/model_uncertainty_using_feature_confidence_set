@@ -33,7 +33,7 @@ theme_set(theme_bw() +
 
 ```{r, fig.width=10}
 # Load the CSV file
-sim_result <- read.csv('../linear_result/linear_regression_18072024.csv')
+sim_result <- read.csv('../linear_result/linear_regression_20072024.csv')
 
 # Print unique values
 print(unique(sim_result$data_kwargs))
@@ -70,7 +70,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(p ~ TLB+`Outcome Type`, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Model") +
+  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom") +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))
 ```
@@ -79,7 +79,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
 
 ```{r, fig.width=10}
 # Load the CSV file
-sim_result <- read.csv('../linear_result/logistic_regression_18072024.csv')
+sim_result <- read.csv('../linear_result/logistic_regression_20072024.csv')
 
 # Print unique values
 print(unique(sim_result$data_kwargs))
@@ -116,7 +116,53 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(p ~ TLB+`Outcome Type`, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Model") +
+  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  theme(legend.position = "bottom") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+```
+
+# Non-linear data visualization
+
+```{r}
+# Load the CSV file
+sim_result <- read.csv('../nonlinear_result/neural_net_20072024.csv')
+
+# Print unique values
+print(unique(sim_result$data_kwargs))
+print(unique(sim_result$model_kwargs_l))
+
+# Select specific columns
+sim_result <- sim_result %>%
+  select(L, N, p, method, Lower_bound, contain, Upper_bound, points_in_e1, inner_points_num, outer_points_num)
+
+# Optionally filter the data
+sim_result_sub <- sim_result # %>% filter(p == 6) # %>% filter(N != 800) # %>% filter(method == 'CS_on_mean')
+
+# Drop 'Lower_bound' column and rename others
+t <- sim_result_sub %>%
+  select(-Lower_bound) %>%
+  rename(TLB = L,
+         Coverage = contain,
+         EUB = Upper_bound,
+         `Points in IB` = points_in_e1,
+         `Inner Set` = inner_points_num,
+         `Outer set` = outer_points_num) %>%
+  mutate(Coverage = ifelse(Coverage=="True",1,0)) %>% 
+  group_by(p, TLB, N, method) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(across(where(is.numeric), round, 2)) %>% 
+  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
+         Method = ifelse(grepl("CS", method), "CS", "Naive")
+         )
+
+
+ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
+  geom_bar(stat = "identity", color="black", position = position_dodge(), width = 0.7) +
+  geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
+  geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_nested(p ~ TLB+`Outcome Type`, labeller = labeller(p = label_both, TLB = label_both)) +
+  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom") +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))
 ```
