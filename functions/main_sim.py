@@ -48,8 +48,10 @@ if __name__ ==  '__main__':
         data_kwargs_v = [{'uniform_range_x':[-2,2]}]
         folder_path = './linear_result'
     elif model_type == "neural_net":
-        #n_sim = 10 #Test the simulation
-        level_v = [2]
+        n_sim = 200
+        n_boot_v = [200]
+        N_v = [100, 200, 400]
+        level_v = [0]
         models_l_v = [[NueralNet]]
         models_kwargs_l_v = [[{'n_iter':200,'patience':100,'input_size': 1, 'h_sizes':[40,40]}]]
         p_v = [1] # overwrite 
