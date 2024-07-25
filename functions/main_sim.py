@@ -57,6 +57,16 @@ if __name__ ==  '__main__':
         p_v = [1] # overwrite 
         data_kwargs_v = [{'transform_func':transform_X, 'beta':np.array([1,2,3,4]), 'uniform_range_x':[-2,2]}]
         folder_path = './nonlinear_result'
+    elif model_type == "xgboost":
+        n_sim = 500
+        n_boot_v = [200]
+        N_v = [100, 200, 400]
+        level_v = [0]
+        models_l_v = [[XGBRegressor]]
+        models_kwargs_l_v = [[{'n_estimators':10,'max_depth':6, 'subsample':0.2}]]
+        p_v = [1] # overwrite 
+        data_kwargs_v = [{'transform_func':transform_X, 'beta':np.array([1,2,3,4]), 'uniform_range_x':[-2,2]}]
+        folder_path = './nonlinear_result'
     file_name = model_type+'_'+date+'.csv'
     if not os.path.exists(folder_path):
         os.mkdir(folder_path)
