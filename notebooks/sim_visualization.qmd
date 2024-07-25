@@ -123,9 +123,11 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
 
 # Non-linear data visualization
 
+## Neural network
+
 ```{r}
 # Load the CSV file
-sim_result <- read.csv('../nonlinear_result/neural_net_20072024.csv')
+sim_result <- read.csv('../nonlinear_result/neural_net_23072024.csv')
 
 # Print unique values
 print(unique(sim_result$data_kwargs))
