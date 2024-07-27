@@ -48,9 +48,8 @@ if __name__ ==  '__main__':
         data_kwargs_v = [{'uniform_range_x':[-2,2]}]
         folder_path = './linear_result'
     elif model_type == "neural_net":
-        n_sim = 200
-        n_boot_v = [200]
-        N_v = [100, 200, 400]
+        n_sim = 250
+        N_v = [100, 200, 400,800]
         level_v = [0]
         models_l_v = [[NueralNet]]
         models_kwargs_l_v = [[{'n_iter':200,'patience':100,'input_size': 1, 'h_sizes':[40,40]}]]
@@ -59,8 +58,7 @@ if __name__ ==  '__main__':
         folder_path = './nonlinear_result'
     elif model_type == "xgboost":
         n_sim = 500
-        n_boot_v = [200]
-        N_v = [100, 200, 400]
+        N_v = [100, 200, 400,800]
         level_v = [0]
         models_l_v = [[XGBRegressor]]
         models_kwargs_l_v = [[{'n_estimators':10,'max_depth':6, 'subsample':0.2}]]
@@ -83,7 +81,7 @@ if __name__ ==  '__main__':
         para_name_dict = {k:str(v) for k, v in param.items()}
         df = pd.DataFrame(para_name_dict, index = [0])
         ctx = torch.multiprocessing.get_context('spawn')
-        pool_obj = ctx.Pool()
+        pool_obj = ctx.Pool(processes=os.cpu_count()-2)
         # pool_obj = multiprocessing.Pool()
         cur_para = (n_sim*(param,))
         df_ = pd.concat(pool_obj.map(sim_CS_wrapper, cur_para)).reset_index(drop = True)

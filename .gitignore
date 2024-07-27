@@ -1,9 +1,7 @@
-*.csv
 data/
 fig_results/
 sim_results/
 *.png
-*.csv
 dataset/
 **/*.pyc
 **/.ipynb_checkpoints

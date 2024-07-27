@@ -173,7 +173,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
 
 ```{r}
 # Load the CSV file
-sim_result <- read.csv('../nonlinear_result/xgboost_24072024.csv')
+sim_result <- read.csv('../nonlinear_result/xgboost_25072024.csv')
 
 # Print unique values
 print(unique(sim_result$data_kwargs))
