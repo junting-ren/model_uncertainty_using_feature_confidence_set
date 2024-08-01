@@ -129,7 +129,7 @@ ggsave("./figures/logistic_sim_result.png", dpi = 300)
 
 ```{r fig.width=10, fig.height=7}
 # Load the CSV file
-sim_result_nerual <- read.csv('../nonlinear_result/neural_net_23072024.csv') %>% 
+sim_result_nerual <- read.csv('../nonlinear_result/neural_net_28072024.csv') %>% 
   mutate(Model = "Neural Network")
 sim_result_xgboost <- read.csv('../nonlinear_result/xgboost_25072024.csv') %>% 
   mutate(Model = "XGBoost")
