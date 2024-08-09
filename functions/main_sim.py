@@ -35,6 +35,14 @@ if __name__ ==  '__main__':
     use_true_contour_v = [False]
     df_result = []
     error_sd_v = [1]
+    boundary_point_ind_v = [False]
+    if model_type == "corollary_1":
+        level_v = [0.5]
+        models_l_v = [[logistic_regression]]
+        models_kwargs_l_v = [[{}]]
+        boundary_point_ind_v = [True]
+        data_kwargs_v = [{'uniform_range_x':[-2,2], "binary": True, "uniform_range_beta": [1,3]}]
+        folder_path = './linear_result_corrolary1'
     if model_type == "logistic_regression":
         level_v = [0.5]
         models_l_v = [[logistic_regression]]
@@ -71,7 +79,7 @@ if __name__ ==  '__main__':
     file_name = os.path.join(folder_path, file_name)
     param_grid = {'L': L_v, 'level': level_v, 'models_l': models_l_v,'model_kwargs_l':models_kwargs_l_v,
                   'N': N_v, 'N_test': N_test_v, 'p': p_v , 'error_sd': error_sd_v, 
-                  'data_sim_func':data_sim_func_v, 'data_kwargs':data_kwargs_v,
+                  'data_sim_func':data_sim_func_v, 'data_kwargs':data_kwargs_v,'boundary_point_ind':boundary_point_ind_v, 
                   'center_G':center_G_v, 'center_pred':center_pred_v, 'use_true_contour': use_true_contour_v, 'n_boot':n_boot_v
                  }
     param_grid = ParameterGrid(param_grid)

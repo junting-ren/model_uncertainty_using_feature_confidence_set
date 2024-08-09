@@ -260,7 +260,7 @@ class cal_thres_at_q(object):
         return upper_bound
 
 
-def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
+def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_point_ind = False):
     '''Search function of the distance such that the range between the lower and upper bound is minimized
     
     Parameters:
@@ -340,6 +340,8 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
             n_points = i
         if patience> max_patience:
             break
+        if boundary_point_ind and i ==2:# Testing Corollary 1
+            break
     return a, L, U, L1, L2, U1,U2, n_points, range_v
     # initialize the golden search parameters
     # q0 = 0
@@ -370,7 +372,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G):
         #print('goldsec once')
     # return a, L, U
     
-def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, test_null = False):
+def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, boundary_point_ind = False):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -382,6 +384,7 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
     G: the standardized matrix of predicted values from new fitted models on the bootstraped samples.
     mean_test_true: the true mean for the test data.
     use_true_contour: indicator whether to use the true mean to calculate the distances. 
+    boundary_point_ind: indicator whether to use the only the boundary point for constructing the confidence set. For testing corollary 1. 
     Returns:
     ---------------
     A tuple contains the following:
@@ -418,7 +421,7 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
     d_neg_sorted = np.sort(np.abs(d[negative_indx]))
     d_abs_sorted = np.sort(np.abs(d))
     #import pdb; pdb.set_trace()
-    a, L, U, L1, L2, U1, U2, n_points, range_v = distance_search(L, d, d_pos_sorted, d_neg_sorted,d_abs_sorted, G)
+    a, L, U, L1, L2, U1, U2, n_points, range_v = distance_search(L, d, d_pos_sorted, d_neg_sorted,d_abs_sorted, G, boundary_point_ind)
     low = mean - a*se
     high = mean + a*se
     dict_ = {"mean": mean, "low": low, "high": high, "inner": low >= level, "outer": high >= level}
@@ -446,19 +449,10 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
             precision_outer = 1
         sensitivity_outer = 1-np.sum((true_set_less_c - compl_outer)>=1)/np.sum(true_set_less_c) if np.sum(true_set_less_c)>0 else None
         # Confidence set containment
-        if test_null:
-            #import pdb;pdb.set_trace()
-            null_set = mean_test_true==level
-            signi_set = np.logical_or(dict_["inner"],~dict_["outer"])
-            if np.all( ((1-signi_set.astype(int)) - null_set.astype(int)) >=0):
-                contain = True
-            else:
-                contain = False
+        if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
+            contain = True
         else:
-            if np.all( (true_set.astype(int) - dict_["inner"].astype(int)) >= 0 ) and np.all( (dict_["outer"].astype(int) - true_set.astype(int)) >= 0 ):
-                contain = True
-            else:
-                contain = False
+            contain = False
         # Getting the containment for the whole set SCB
         r_max_l = np.max(np.abs(G),axis = 1)
         thres = np.quantile(r_max_l, q = 1 - 0.05)

@@ -116,7 +116,7 @@ x        The training outcome with irreducible error included
 
 def bootstrap_and_CS(L, level, model, model_kwargs, 
                      X, y, X_test, y_test, mean_test_true = None, 
-                     center_G = True, center_pred = False, 
+                     center_G = True, center_pred = False, boundary_point_ind = False,
                      use_true_contour = False,  n_boot = 200, pred_y = True, return_plot = False):
     
     point_pred, mean_boot_l, se, mean_boot_y_l, se_y = bootstrap(model, model_kwargs, y, X, X_test, n_boot = n_boot)
@@ -126,38 +126,21 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                                          MC = False, center_G = center_G, center_pred = center_pred)
     # construct confidence set using the new algorithm
     (df_res, result_dict) = prediction_confidence_set(L, level, point_pred, se, G, 
-                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour, test_null = False)
+                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour, boundary_point_ind = boundary_point_ind)
     result_dict['method'] = 'CS_on_mean'
     # Naive method
     (_, result_dict_naive) = naive_CS_method(L, level, mean_boot_l, mean_test_true)
     result_dict_naive['method'] = 'naive_on_mean'
-    # maxT step down for constructing confidence set
-    # multiple_testing = multiple_testing_confidence_set(L, level, point_pred, se, G, mean_test_true)
-    # _,result_dict_T = multiple_testing.maxT_step_down_confidence_set()
-    # result_dict_T['method'] = 'step_maxT_on_mean'
-    # _,result_dict_Bonf = multiple_testing.Bonf_confidence_set()
-    # result_dict_Bonf['method'] = 'Bonf_on_mean'
-    # _,result_dict_Holm = multiple_testing.Holm_confidence_set()
-    # result_dict_Holm['method'] = 'Holm_on_mean'
-    # r = [result_dict,result_dict_T,result_dict_Bonf,result_dict_Holm]
     r = [result_dict, result_dict_naive]
     #import pdb; pdb.set_trace()
     if pred_y:
         G_y, _ = process_boot_samples(mean_boot_y_l, point_pred, se_y, mean_test_true = mean_test_true, 
                                              MC = False, center_G = center_G, center_pred = center_pred)
         (df_res_y, result_dict_y) = prediction_confidence_set(L, level, point_pred, se_y, G_y, 
-                                                           mean_test_true = y_test, use_true_contour = use_true_contour, test_null = False)
+                                                           mean_test_true = y_test, use_true_contour = use_true_contour, boundary_point_ind = boundary_point_ind)
         result_dict_y['method'] = 'CS_on_y'
         (_, result_dict_naive_y) = naive_CS_method(L, level, mean_boot_y_l, y_test)
         result_dict_naive_y['method'] = 'naive_on_y'
-        # multiple_testing = multiple_testing_confidence_set(L, level, point_pred, se_y, G_y, mean_test_true = y_test)
-        # _,result_dict_T_y = multiple_testing.maxT_step_down_confidence_set()
-        # result_dict_T_y['method'] = 'step_maxT_on_y'
-        # _,result_dict_Bonf_y = multiple_testing.Bonf_confidence_set()
-        # result_dict_Bonf_y['method'] = 'Bonf_on_y'
-        # _,result_dict_Holm_y = multiple_testing.Holm_confidence_set()
-        # result_dict_Holm_y['method'] = 'Holm_on_y'
-        # r.extend([result_dict_y, result_dict_T_y, result_dict_Bonf_y, result_dict_Holm_y])
         r.extend([result_dict_y, result_dict_naive_y])
     if return_plot:#only works for 1D case
         df_res = pd.concat([df_res, pd.DataFrame({'x':np.squeeze(X_test, axis = 1), 'prediction':point_pred, 'y': y_test, 'f(x)': mean_test_true})],axis = 1)
@@ -218,6 +201,7 @@ def CS_and_plot(df_res, df_res_y, level):
 def sim_CS(L, level, models_l, model_kwargs_l, 
            N, N_test, p, error_sd, 
            data_sim_func, data_kwargs,
+           boundary_point_ind = False, 
            center_G = True, center_pred = False, 
            use_true_contour = False,  n_boot = 200, return_plot = False):
     # data simulation
