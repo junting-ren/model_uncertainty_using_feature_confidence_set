@@ -78,7 +78,7 @@ def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = Fals
         return G, mean, se
 
 class cal_thres_at_q(object):
-    def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None, blur_boundary = True):
+    def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None, blur_boundary = True, boundary_point_ind = False):
         '''Initialize the function to calculate the threshold when lower bound equal to L at q quantile of the distances
 
         Parameters:
@@ -91,7 +91,8 @@ class cal_thres_at_q(object):
         e1: the inflated distance for above the level of interest
         e2: the inflated distance for below the level of interest
         G：The G statistics
-        blur_boundary: whether to take the absolute value around the boundary so 
+        blur_boundary: whether to take the absolute value around the boundary, should be true, follow the paper.
+        boundary_point_ind: True if checking corollary 1
         '''
         #import pdb; pdb.set_trace()
         self.G = G
@@ -123,6 +124,7 @@ class cal_thres_at_q(object):
         self.sup_lo2 = np.max(self.G[:, self.index_lo2],axis = 1) if self.n_lo2>0 else None
         
         self.blur_boundary = blur_boundary
+        self.boundary_point_ind = boundary_point_ind
     
     def binary_search(self):
         '''Binary search for the threshold a
@@ -136,7 +138,25 @@ class cal_thres_at_q(object):
             upperbound1 specified in the paper
         '''
         a_high = 5
-        a_low = 0.1
+        a_low = 0.01
+        if self.boundary_point_ind: # we do not search, since we use the smallest a=0.01
+            lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_low)
+            upper_bound1 = self.cal_upper_bound(a_low)
+            return a_low, lower_b_med, lower_bound1, lower_bound2, upper_bound1
+        # Check if the two initial bound will be sufficiently large or small
+        adjust_bound = True
+        while adjust_bound:
+            adjust_bound = False
+            # Check a_high
+            lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_high)
+            if lower_b_med < self.L:
+                a_high = a_high*2
+                adjust_bound = True
+            # Check a_low
+            lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_low)
+            if lower_b_med > self.L:# if this is true, it means that even the smallest a is enough to get the lower bound.
+                upper_bound1 = self.cal_upper_bound(a_low)
+                return a_low, lower_b_med, lower_bound1, lower_bound2, upper_bound1
         a_med = (a_high+a_low)/2
         lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_med)
         j = 1
@@ -292,6 +312,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_
     largest_pos = max(d_pos_sorted) if len(d_pos_sorted)>0 else 0
     largest_neg = max(d_neg_sorted) if len(d_neg_sorted)>0 else 0
     search_func_min = cal_thres_at_q(None, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2)
+
     # grid search
     range_min = float('inf')
     range_v = []
@@ -314,10 +335,14 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_
         #     e1 = e
         #     e2 = largest_neg - 0.01
         # else: # increase both distance, only one side will include one more point
-        e1, e2 = e,e
+        if boundary_point_ind:# Testing Corollary 1
+            e1 = np.min(d_pos_sorted)+0.001
+            e2 = np.min(d_neg_sorted)+0.001
+        else:
+            e1, e2 = e,e
         # e1 = d_pos_sorted[i]
         # e2 =  d_neg_sorted[i]
-        search_func_cur = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2)
+        search_func_cur = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2, boundary_point_ind = boundary_point_ind)
         a_q, lowerb, lowerb1, lowerb2, upperb1 = search_func_cur.binary_search()
         upperb2 = search_func_min.cal_upper_bound(a_q)
         #upperb = min(upperb1,upperb2)
@@ -340,7 +365,7 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_
             n_points = i
         if patience> max_patience:
             break
-        if boundary_point_ind and i ==2:# Testing Corollary 1
+        if boundary_point_ind:# Testing Corollary 1
             break
     return a, L, U, L1, L2, U1,U2, n_points, range_v
     # initialize the golden search parameters

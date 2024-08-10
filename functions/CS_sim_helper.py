@@ -215,7 +215,7 @@ def sim_CS(L, level, models_l, model_kwargs_l,
     for model, kwarg in zip(models_l, model_kwargs_l):
         r = bootstrap_and_CS(L, level, model, kwarg,
                              X, y, X_test, y_test, mean_test_true = mean_test_true, 
-                             center_G = center_G, center_pred = center_pred, 
+                             center_G = center_G, center_pred = center_pred, boundary_point_ind = boundary_point_ind, 
                              use_true_contour = use_true_contour,  n_boot = n_boot, pred_y = pred_y, return_plot = return_plot)
         result_list.append(r)
     return pd.concat(result_list)

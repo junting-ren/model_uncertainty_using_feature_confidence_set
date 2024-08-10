@@ -20,7 +20,7 @@ date = today.strftime("%d%m%Y")
 
 if __name__ ==  '__main__': 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='linear_regression')
+    parser.add_argument('--model', type=str, default='corollary_1')
     model_type = parser.parse_args().model
     df_total = pd.DataFrame()
     n_sim = 1000
@@ -37,11 +37,14 @@ if __name__ ==  '__main__':
     error_sd_v = [1]
     boundary_point_ind_v = [False]
     if model_type == "corollary_1":
-        level_v = [0.5]
-        models_l_v = [[logistic_regression]]
+        level_v = [0]
+        L_v = [0.6]
+        p_v = [3]
+        N_v = [100, 200, 400, 800,1600, 3200, 6400, 12800]
+        models_l_v = [[LinearRegression]]
         models_kwargs_l_v = [[{}]]
+        data_kwargs_v = [{'uniform_range_x':[-2,2]}]
         boundary_point_ind_v = [True]
-        data_kwargs_v = [{'uniform_range_x':[-2,2], "binary": True, "uniform_range_beta": [1,3]}]
         folder_path = './linear_result_corrolary1'
     if model_type == "logistic_regression":
         level_v = [0.5]
@@ -100,5 +103,6 @@ if __name__ ==  '__main__':
         df_ = pd.concat([para_df, df_], axis = 1)
         df_total = pd.concat([df_total,df_])
         df_total.to_csv(file_name, index = False)
+        print(f"Done: {param}")
     end = time.time()
     print('Runtime of the program is ' + str(end -start) + ' seconds')
