@@ -78,7 +78,7 @@ def process_boot_samples(mean_boot_l, mean, se, mean_test_true = None, MC = Fals
         return G, mean, se
 
 class cal_thres_at_q(object):
-    def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None, blur_boundary = True, boundary_point_ind = False):
+    def __init__(self, q, L, d, d_pos_sorted, d_neg_sorted, G, e1 = None, e2 = None, blur_boundary = True, closest_point_ind = False):
         '''Initialize the function to calculate the threshold when lower bound equal to L at q quantile of the distances
 
         Parameters:
@@ -92,7 +92,7 @@ class cal_thres_at_q(object):
         e2: the inflated distance for below the level of interest
         G：The G statistics
         blur_boundary: whether to take the absolute value around the boundary, should be true, follow the paper.
-        boundary_point_ind: True if checking corollary 1
+        closest_point_ind: True if checking corollary 1
         '''
         #import pdb; pdb.set_trace()
         self.G = G
@@ -124,7 +124,7 @@ class cal_thres_at_q(object):
         self.sup_lo2 = np.max(self.G[:, self.index_lo2],axis = 1) if self.n_lo2>0 else None
         
         self.blur_boundary = blur_boundary
-        self.boundary_point_ind = boundary_point_ind
+        self.closest_point_ind = closest_point_ind
     
     def binary_search(self):
         '''Binary search for the threshold a
@@ -139,7 +139,7 @@ class cal_thres_at_q(object):
         '''
         a_high = 5
         a_low = 0.01
-        if self.boundary_point_ind: # we do not search, since we use the smallest a=0.01
+        if self.closest_point_ind: # we do not search, since we use the smallest a=0.01
             lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_low)
             upper_bound1 = self.cal_upper_bound(a_low)
             return a_low, lower_b_med, lower_bound1, lower_bound2, upper_bound1
@@ -280,7 +280,7 @@ class cal_thres_at_q(object):
         return upper_bound
 
 
-def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_point_ind = False):
+def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, closest_point_ind = False):
     '''Search function of the distance such that the range between the lower and upper bound is minimized
     
     Parameters:
@@ -323,26 +323,14 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_
     max_patience = 300
     for e in d_abs_sorted:
         i += 1
-        #import pdb; pdb.set_trace()
-        # if e < max_smallest: # if this is true, there is one side without any point
-        #     continue
-        # if e >= largest_pos and e >= largest_neg:#if there is no points in the second part for both positive and negative distance
-        #     break
-        # if e >= largest_pos:# e1 stays below largest positive so that we have something in the second part for positive side
-        #     e1 = largest_pos -0.01
-        #     e2 = e
-        # elif e >=  largest_neg:# e2 stays below largest negative so that we have something in the second part for negative side
-        #     e1 = e
-        #     e2 = largest_neg - 0.01
-        # else: # increase both distance, only one side will include one more point
-        if boundary_point_ind:# Testing Corollary 1
+        if closest_point_ind:# Testing Corollary 1
             e1 = np.min(d_pos_sorted)+0.001
             e2 = np.min(d_neg_sorted)+0.001
         else:
             e1, e2 = e,e
         # e1 = d_pos_sorted[i]
         # e2 =  d_neg_sorted[i]
-        search_func_cur = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2, boundary_point_ind = boundary_point_ind)
+        search_func_cur = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G, e1, e2, closest_point_ind = closest_point_ind)
         a_q, lowerb, lowerb1, lowerb2, upperb1 = search_func_cur.binary_search()
         upperb2 = search_func_min.cal_upper_bound(a_q)
         #upperb = min(upperb1,upperb2)
@@ -365,39 +353,12 @@ def distance_search(L, d, d_pos_sorted, d_neg_sorted, d_abs_sorted, G, boundary_
             n_points = i
         if patience> max_patience:
             break
-        if boundary_point_ind:# Testing Corollary 1
+        if closest_point_ind:# Testing Corollary 1
             break
     return a, L, U, L1, L2, U1,U2, n_points, range_v
-    # initialize the golden search parameters
-    # q0 = 0
-    # q3 = 1
-    # gr = 0.618
-    # #import pdb; pdb.set_trace()
-    # while np.abs(q3-q0)>0.05:
-    #     g = gr*(q3-q0)
-    #     q1 = q0 + g
-    #     q2 = q3 - g
-    #     a_q_v = []
-    #     R = []
-    #     LB = []
-    #     UB = []
-    #     for q in (q1, q2):
-    #         a_q, lowerb, lowerb1, lowerb2, upperb1 = cal_thres_at_q(q, L, d, d_pos_sorted, d_neg_sorted, G)
-    #         upperb2 = cal_upper_bound(a_q, inf_up1_min, sup_lo1_min, r_sup_up1_min, r_sup_lo1_min)
-    #         upperb = min(upperb1,upperb2)
-    #         range_ = upperb - lowerb
-    #         a_q_v.append(a_q)
-    #         R.append(range_)
-    #         LB.append(lowerb)
-    #         UB.append(upperb)
-    #     if R[0] < R[1]:
-    #         q0, a, L, U = q2, a_q_v[0], LB[0], UB[0]
-    #     else:
-    #         q3, a, L, U = q1, a_q_v[1], LB[1], UB[1]
-        #print('goldsec once')
-    # return a, L, U
+
     
-def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, boundary_point_ind = False):
+def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_true_contour = False, closest_point_ind = False, boundary_point_ind = False):
     '''Function for finding the inner and outer confidence set
     
     Parameters:
@@ -409,7 +370,8 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
     G: the standardized matrix of predicted values from new fitted models on the bootstraped samples.
     mean_test_true: the true mean for the test data.
     use_true_contour: indicator whether to use the true mean to calculate the distances. 
-    boundary_point_ind: indicator whether to use the only the boundary point for constructing the confidence set. For testing corollary 1. 
+    closest_point_ind: indicator whether to use the only the closest point for constructing the confidence set. For testing corollary 1. 
+    boundary_point_ind: indicator whether to use the only the boundary point for constructing the confidence. For testing Theorem 1. 
     Returns:
     ---------------
     A tuple contains the following:
@@ -446,7 +408,25 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
     d_neg_sorted = np.sort(np.abs(d[negative_indx]))
     d_abs_sorted = np.sort(np.abs(d))
     #import pdb; pdb.set_trace()
-    a, L, U, L1, L2, U1, U2, n_points, range_v = distance_search(L, d, d_pos_sorted, d_neg_sorted,d_abs_sorted, G, boundary_point_ind)
+    if boundary_point_ind and closest_point_ind:
+        raise ValueError('boundary point indicator and closest point indicator cannot be both True')
+    if boundary_point_ind: # Checking Theorem 1
+        # check if mean_test_true exist or not, if not error
+        if mean_test_true is None:
+            raise ValueError('mean test true is not provided')
+        index_d_equal_0 = d==0
+        if np.sum(index_d_equal_0)==0:
+            raise ValueError('no boundary point found')
+        inf_G_boundary = np.min(G[:, index_d_equal_0],axis = 1)
+        a = 0.1
+        while True:
+            if np.mean((inf_G_boundary >= -a))<L:
+                a += 0.05
+            else:
+                break
+        L, U, L1, L2, U1, U2, n_points, range_v = None, None, None, None, None, None, None, None
+    else:# Use the inflated boundary theorem: theorem 2 our main theorem
+        a, L, U, L1, L2, U1, U2, n_points, range_v = distance_search(L, d, d_pos_sorted, d_neg_sorted,d_abs_sorted, G, closest_point_ind)
     low = mean - a*se
     high = mean + a*se
     dict_ = {"mean": mean, "low": low, "high": high, "inner": low >= level, "outer": high >= level}

@@ -36,6 +36,18 @@ if __name__ ==  '__main__':
     df_result = []
     error_sd_v = [1]
     boundary_point_ind_v = [False]
+    closest_point_ind_v = [False]
+    if model_type == "theorem_1":
+        level_v = [0]
+        L_v = [0.9]
+        p_v = [3]
+        N_v = [100, 200, 400, 800, 1600, 3200, 6400, 12800]
+        models_l_v = [[LinearRegression]]
+        models_kwargs_l_v = [[{}]]
+        data_kwargs_v = [{'uniform_range_x':[-2,2], 'boundary_point_ind': True, 'level': level_v[0]}]
+        boundary_point_ind_v = [True]
+        use_true_contour_v = [True]
+        folder_path = './linear_result_theorem_1'
     if model_type == "corollary_1":
         level_v = [0]
         L_v = [0.6]
@@ -43,8 +55,9 @@ if __name__ ==  '__main__':
         N_v = [100, 200, 400, 800,1600, 3200, 6400, 12800]
         models_l_v = [[LinearRegression]]
         models_kwargs_l_v = [[{}]]
+        use_true_contour_v = [False, True]
         data_kwargs_v = [{'uniform_range_x':[-2,2]}]
-        boundary_point_ind_v = [True]
+        closest_point_ind_v = [True]
         folder_path = './linear_result_corrolary1'
     if model_type == "logistic_regression":
         level_v = [0.5]
@@ -82,7 +95,8 @@ if __name__ ==  '__main__':
     file_name = os.path.join(folder_path, file_name)
     param_grid = {'L': L_v, 'level': level_v, 'models_l': models_l_v,'model_kwargs_l':models_kwargs_l_v,
                   'N': N_v, 'N_test': N_test_v, 'p': p_v , 'error_sd': error_sd_v, 
-                  'data_sim_func':data_sim_func_v, 'data_kwargs':data_kwargs_v,'boundary_point_ind':boundary_point_ind_v, 
+                  'data_sim_func':data_sim_func_v, 'data_kwargs':data_kwargs_v,
+                  'closest_point_ind':closest_point_ind_v, 'boundary_point_ind':boundary_point_ind_v, 
                   'center_G':center_G_v, 'center_pred':center_pred_v, 'use_true_contour': use_true_contour_v, 'n_boot':n_boot_v
                  }
     param_grid = ParameterGrid(param_grid)

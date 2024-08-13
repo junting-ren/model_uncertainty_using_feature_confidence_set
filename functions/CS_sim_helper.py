@@ -41,7 +41,8 @@ def transform_X_poly(X):
 
 def generate_sim_data(N, N_test, p, error_sd, 
                       transform_func = None, binary = False, beta=None, 
-                      seed = None, X = None, X_test = None, uniform_range_beta = None,uniform_range_x = None
+                      seed = None, X = None, X_test = None, uniform_range_beta = None,uniform_range_x = None,
+                      boundary_point_ind = False, level = None
                      ):
     '''Generate data for simulation
     
@@ -102,7 +103,24 @@ x        The training outcome with irreducible error included
         X_test_transformed = X_test
     else:
         X_test_transformed = transform_func(X_test)
-    mean_test_true = X_test_transformed @ beta
+    if boundary_point_ind:
+        if level is None:
+            raise ValueError('level must be specified for boundary point simulation data generation')
+        if binary:
+            raise ValueError('boundary point simulation data generation is not implemented for binary response')
+        mean_test_true = X_test_transformed @ beta
+        # Find the index of the point mean_test_true is closest to level
+        differences = np.abs(mean_test_true - level)
+        # Get the indices of the two smallest differences
+        two_smallest_indices = np.argsort(differences)[:5]
+        diff = mean_test_true[two_smallest_indices] - level
+        # Generate the boundary point by changing the last feature of X_test_transformed
+        X_test_transformed[two_smallest_indices,-1] = (X_test_transformed[two_smallest_indices,-1]*beta[-1]-diff)/beta[-1] 
+        # Generate the new mean_test_True
+        mean_test_true = X_test_transformed @ beta
+        mean_test_true[two_smallest_indices] = level
+    else:
+        mean_test_true = X_test_transformed @ beta
     if binary:
         y_test = mean_test_true 
         y_prob_test = 1/(1+np.exp(-y_test))
@@ -110,13 +128,15 @@ x        The training outcome with irreducible error included
         y_test = rng.binomial(1, p = y_prob_test)
     else:
         y_test = mean_test_true + rng.normal(loc = 0,scale = error_sd, size = (N_test,))
+        if boundary_point_ind:
+            y_test[two_smallest_indices] = level
         y_prob_test = None
     return X, y, X_test, y_test, mean_test_true, beta, y_prob, y_prob_test
 
 
 def bootstrap_and_CS(L, level, model, model_kwargs, 
                      X, y, X_test, y_test, mean_test_true = None, 
-                     center_G = True, center_pred = False, boundary_point_ind = False,
+                     center_G = True, center_pred = False, closest_point_ind = False, boundary_point_ind = False, 
                      use_true_contour = False,  n_boot = 200, pred_y = True, return_plot = False):
     
     point_pred, mean_boot_l, se, mean_boot_y_l, se_y = bootstrap(model, model_kwargs, y, X, X_test, n_boot = n_boot)
@@ -126,7 +146,8 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
                                          MC = False, center_G = center_G, center_pred = center_pred)
     # construct confidence set using the new algorithm
     (df_res, result_dict) = prediction_confidence_set(L, level, point_pred, se, G, 
-                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour, boundary_point_ind = boundary_point_ind)
+                                                   mean_test_true = mean_test_true, use_true_contour = use_true_contour, 
+                                                   closest_point_ind  = closest_point_ind, boundary_point_ind = boundary_point_ind)
     result_dict['method'] = 'CS_on_mean'
     # Naive method
     (_, result_dict_naive) = naive_CS_method(L, level, mean_boot_l, mean_test_true)
@@ -137,7 +158,8 @@ def bootstrap_and_CS(L, level, model, model_kwargs,
         G_y, _ = process_boot_samples(mean_boot_y_l, point_pred, se_y, mean_test_true = mean_test_true, 
                                              MC = False, center_G = center_G, center_pred = center_pred)
         (df_res_y, result_dict_y) = prediction_confidence_set(L, level, point_pred, se_y, G_y, 
-                                                           mean_test_true = y_test, use_true_contour = use_true_contour, boundary_point_ind = boundary_point_ind)
+                                                           mean_test_true = y_test, use_true_contour = use_true_contour, 
+                                                           closest_point_ind  = closest_point_ind, boundary_point_ind = boundary_point_ind)
         result_dict_y['method'] = 'CS_on_y'
         (_, result_dict_naive_y) = naive_CS_method(L, level, mean_boot_y_l, y_test)
         result_dict_naive_y['method'] = 'naive_on_y'
@@ -201,7 +223,7 @@ def CS_and_plot(df_res, df_res_y, level):
 def sim_CS(L, level, models_l, model_kwargs_l, 
            N, N_test, p, error_sd, 
            data_sim_func, data_kwargs,
-           boundary_point_ind = False, 
+           closest_point_ind = False, boundary_point_ind = False,
            center_G = True, center_pred = False, 
            use_true_contour = False,  n_boot = 200, return_plot = False):
     # data simulation
@@ -215,7 +237,7 @@ def sim_CS(L, level, models_l, model_kwargs_l,
     for model, kwarg in zip(models_l, model_kwargs_l):
         r = bootstrap_and_CS(L, level, model, kwarg,
                              X, y, X_test, y_test, mean_test_true = mean_test_true, 
-                             center_G = center_G, center_pred = center_pred, boundary_point_ind = boundary_point_ind, 
+                             center_G = center_G, center_pred = center_pred, closest_point_ind  = closest_point_ind, boundary_point_ind = boundary_point_ind,
                              use_true_contour = use_true_contour,  n_boot = n_boot, pred_y = pred_y, return_plot = return_plot)
         result_list.append(r)
     return pd.concat(result_list)
