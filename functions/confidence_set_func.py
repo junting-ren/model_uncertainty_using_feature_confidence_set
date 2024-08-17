@@ -140,6 +140,7 @@ class cal_thres_at_q(object):
         a_high = 5
         a_low = 0.01
         if self.closest_point_ind: # we do not search, since we use the smallest a=0.01
+            a_low = 1
             lower_b_med,lower_bound1,lower_bound2 = self.cal_lower_bound(a_low)
             upper_bound1 = self.cal_upper_bound(a_low)
             return a_low, lower_b_med, lower_bound1, lower_bound2, upper_bound1

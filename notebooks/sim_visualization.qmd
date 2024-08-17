@@ -29,6 +29,66 @@ theme_set(theme_bw() +
 
 # Linear model visualization
 
+## Theorem 1 checking with linear regression
+
+```{r, fig.width=5, fig.height=3}
+# Load the CSV file
+sim_result <- read.csv('../linear_result_theorem_1/theorem_1_11082024.csv') %>% 
+  filter(method == 'CS_on_mean') %>% 
+  mutate(Method = ifelse(grepl("CS", method), "Theorem 1", "Naive")
+         )
+sim_result_cor1 <- read.csv('../linear_result_corrolary1/corollary_1_13082024.csv') %>% 
+  filter(use_true_contour == "True", 
+         method == 'CS_on_mean'
+         ) %>% 
+  mutate(Method = ifelse(grepl("CS", method), "Corollary 1", "Naive"),
+         L = NA)
+sim_result = rbind(sim_result, sim_result_cor1)
+
+
+# Select specific columns
+sim_result <- sim_result %>%
+  select(L, N, p, Method, Lower_bound, contain, Upper_bound, points_in_e1, inner_points_num, outer_points_num)
+
+# Optionally filter the data
+sim_result_sub <- sim_result 
+
+# Drop 'Lower_bound' column and rename others
+t <- sim_result_sub %>%
+  select(-Lower_bound) %>%
+  rename(TLB = L,
+         Coverage = contain,
+         EUB = Upper_bound,
+         `Points in IB` = points_in_e1,
+         `Inner Set` = inner_points_num,
+         `Outer set` = outer_points_num) %>%
+  mutate(Coverage = ifelse(Coverage=="True",1,0)) %>% 
+  group_by(p, TLB, N, Method) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(across(where(is.numeric), round, 4)) %>% 
+  mutate(`Outcome Type` = ifelse(grepl("mean", Method), "Mean", "Observed Y"),
+         Method = factor(Method, levels = c("Theorem 1", "Corollary 1"))
+         ) 
+
+ggplot(t, aes(x = factor(N), y = Coverage)) +
+  geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
+  geom_bar(stat = "identity", color="black", fill = "purple",fposition = position_dodge(), width = 0.7) +
+  geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
+  scale_fill_brewer(palette = "Set1") +
+  facet_grid(. ~ Method) +
+  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90)
+        ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     limits = c(0,1))
+
+ggsave("./figures/thm_coro_sim_result.png", dpi = 300)
+# t %>% ungroup() %>% 
+#   select(TLB, Method, `Training Sample Size` = N, Coverage) %>% 
+#   xtable::xtable()
+```
+
 ## Linear regression
 
 ```{r, fig.width=8, fig.height=8}
@@ -73,7 +133,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(`Outcome Type`+TLB ~ p, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
         axis.title.y.right = element_text(color = "dark green")
         ) +
@@ -130,8 +190,8 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(`Outcome Type`+TLB ~ p, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
-theme(legend.position = "bottom",
+  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  theme(legend.position = "bottom",
         axis.title.y.right = element_text(color = "dark green")
         ) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1),
@@ -141,53 +201,6 @@ theme(legend.position = "bottom",
                      )
 
 ggsave("./figures/logistic_sim_result.png", dpi = 300)
-```
-
-## Corollary 1 checking with linear regression
-
-```{r, fig.width=5, fig.height=5}
-# Load the CSV file
-sim_result <- read.csv('../linear_result_corrolary1/corollary_1_10082024.csv')
-
-# Print unique values
-print(unique(sim_result$data_kwargs))
-print(unique(sim_result$model_kwargs_l))
-
-# Select specific columns
-sim_result <- sim_result %>%
-  select(L, N, p, method, Lower_bound, contain, Upper_bound, points_in_e1, inner_points_num, outer_points_num)
-
-# Optionally filter the data
-sim_result_sub <- sim_result %>% 
-  filter(method == 'CS_on_mean')
-
-# Drop 'Lower_bound' column and rename others
-t <- sim_result_sub %>%
-  select(-Lower_bound) %>%
-  rename(TLB = L,
-         Coverage = contain,
-         EUB = Upper_bound,
-         `Points in IB` = points_in_e1,
-         `Inner Set` = inner_points_num,
-         `Outer set` = outer_points_num) %>%
-  mutate(Coverage = ifelse(Coverage=="True",1,0)) %>% 
-  group_by(p, TLB, N, method) %>%
-  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
-  mutate(across(where(is.numeric), round, 4)) %>% 
-  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
-         Method = ifelse(grepl("CS", method), "Corollary 1", "Naive")
-         ) 
-
-
-# ggplot(t, aes(x = factor(N), y = Coverage)) +
-#   geom_bar(stat = "identity", color="black", fill = "purple",fposition = position_dodge(), width = 0.7) +
-#   scale_fill_brewer(palette = "Set1") +
-#   facet_nested(p ~ `Outcome Type`, labeller = labeller(p = label_both, TLB = label_both)) +
-#   labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
-#   theme(legend.position = "bottom") +
-#   scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
-#                      limits = c(0,1))
-print(t)
 ```
 
 # Non-linear data visualization
@@ -233,7 +246,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(`Outcome Type`+TLB ~ Model, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
         axis.title.y.right = element_text(color = "dark green")
         ) +

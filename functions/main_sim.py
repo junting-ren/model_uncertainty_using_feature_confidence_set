@@ -55,7 +55,7 @@ if __name__ ==  '__main__':
         N_v = [100, 200, 400, 800,1600, 3200, 6400, 12800]
         models_l_v = [[LinearRegression]]
         models_kwargs_l_v = [[{}]]
-        use_true_contour_v = [False, True]
+        use_true_contour_v = [True, False]
         data_kwargs_v = [{'uniform_range_x':[-2,2]}]
         closest_point_ind_v = [True]
         folder_path = './linear_result_corrolary1'
