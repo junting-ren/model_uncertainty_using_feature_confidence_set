@@ -76,7 +76,7 @@ ggplot(t, aes(x = factor(N), y = Coverage)) +
   geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
   scale_fill_brewer(palette = "Set1") +
   facet_grid(. ~ Method) +
-  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  labs(x = "Training Sample Size (n)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
         axis.text.x = element_text(angle = 90)
         ) +
@@ -133,7 +133,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(`Outcome Type`+TLB ~ p, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  labs(x = "Training Sample Size (n)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
         axis.title.y.right = element_text(color = "dark green")
         ) +
@@ -190,7 +190,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(`Outcome Type`+TLB ~ p, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  labs(x = "Training Sample Size (n)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
         axis.title.y.right = element_text(color = "dark green")
         ) +
@@ -246,7 +246,7 @@ ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
   facet_nested(`Outcome Type`+TLB ~ Model, labeller = labeller(p = label_both, TLB = label_both)) +
-  labs(x = "Training Sample Size (N)", y = "Coverage Rate", fill = "Method") +
+  labs(x = "Training Sample Size (n)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
         axis.title.y.right = element_text(color = "dark green")
         ) +
