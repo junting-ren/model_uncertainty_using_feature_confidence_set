@@ -16,3 +16,6 @@ functions/__pycache__/
 *.jpg
 *.npy
 *.pptx
+/functions/linear_result
+/functions/non_linear_result
+/functions/old_result
