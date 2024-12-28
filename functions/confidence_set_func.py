@@ -435,7 +435,14 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
     outer_points_num = np.sum(dict_['outer'])
     # Whether there is true mean or not
     if mean_test_true is None:
-        return pd.DataFrame(dict_), L, U, None, None, None
+        agg_dict = {"contain":None, "contain_scb":None,'contain_CS_scb':None,
+            'Lower_bound':L, 'Upper_bound': U, 
+            'L1':L1, 'L2': L2, 'U1': U1, 'U2':U2, 'points_in_e1': n_points,
+            'inner_points_num': inner_points_num,'outer_points_num':outer_points_num,
+            'true_set_points_up_num':None, 'true_set_points_low_num':None,
+            'precision_inner':None, 'sensitivity_inner':None,
+            'precision_outer':None,'sensitivity_outer':None}
+        return pd.DataFrame(dict_), agg_dict
     else:# if there is True mean
         true_set = mean_test_true >= level
         # For classifying whether it is greater than c
@@ -461,7 +468,9 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
             contain = False
         # Getting the containment for the whole set SCB
         r_max_l = np.max(np.abs(G),axis = 1)
-        thres = np.quantile(r_max_l, q = 1 - 0.05)
+        # type I error, this should be two sided simultaneously confidence interval
+        alpha = 1-L
+        thres = np.quantile(r_max_l, q = 1 - alpha/2)
         low = mean - thres*se
         high = mean + thres*se
         inner = low >= level
@@ -478,17 +487,26 @@ def prediction_confidence_set(L, level, mean, se, G, mean_test_true = None, use_
         return pd.DataFrame(dict_), agg_dict
     
 def naive_CS_method(L, level, mean_boot_l, mean_test_true = None):
+    # alpha
+    alpha = 1-L
     #import pdb; pdb.set_trace()
     percent_above = np.mean(mean_boot_l > level, axis = 0)
-    index_inner = percent_above > L
+    index_inner = percent_above > 1-alpha/2
     percent_below = np.mean(mean_boot_l < level, axis = 0)
-    index_outer = ~(percent_below > L)
+    index_outer = ~(percent_below > 1-alpha/2)
     dict_ = {"mean": None, "low": None, "high": None, "inner": index_inner, "outer": index_outer}
     inner_points_num = np.sum(dict_['inner'])
     outer_points_num = np.sum(dict_['outer'])
     # Whether there is true mean or not
     if mean_test_true is None:
-        return pd.DataFrame(dict_), L, None, None, None, None
+        agg_dict = {"contain":None, "contain_scb":None,'contain_CS_scb':None,
+            'Lower_bound':L, 'Upper_bound': None, 
+            'L1':None, 'L2': None, 'U1': None, 'U2':None, 'points_in_e1': None,
+            'inner_points_num': inner_points_num,'outer_points_num':outer_points_num,
+            'true_set_points_up_num':None, 'true_set_points_low_num':None,
+            'precision_inner':None, 'sensitivity_inner':None,
+            'precision_outer':None,'sensitivity_outer':None}
+        return pd.DataFrame(dict_),agg_dict
     else:# if there is True mean
         true_set_points_up_num = np.sum(mean_test_true>=level)
         true_set_points_low_num = np.sum(mean_test_true<level)        
