@@ -148,7 +148,6 @@ t <- sim_result_sub %>%
 ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_bar(stat = "identity", color="black", position = position_dodge(), width = 0.7) +
   geom_line(aes(y = Count/70, group = Method), color = "blue")+
-  geom_point(aes(y = Count/70), color = "blue")+
   geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
@@ -224,7 +223,6 @@ t <- sim_result_sub %>%
 ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_bar(stat = "identity", color="black", position = position_dodge(), width = 0.7) +
   geom_line(aes(y = Count/70, group = Method), color = "blue")+
-  geom_point(aes(y = Count/70), color = "blue")+
   geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
   scale_fill_brewer(palette = "Set1") +
