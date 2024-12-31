@@ -95,7 +95,9 @@ ggsave("./figures/thm_coro_sim_result.png", dpi = 300)
 
 ```{r, fig.width=8, fig.height=8}
 # Load the CSV file
-sim_result <- read.csv('../linear_result/linear_regression_20072024.csv')
+#sim_result <- read.csv('../linear_result/linear_regression_20072024.csv')
+# result with the correct naive algorithm
+sim_result <- read.csv('../linear_result/linear_regression_30122024.csv')
 
 # Print unique values
 print(unique(sim_result$data_kwargs))
@@ -103,7 +105,20 @@ print(unique(sim_result$model_kwargs_l))
 
 # Select specific columns
 sim_result <- sim_result %>%
-  select(L, N, p, method, Lower_bound, contain, Upper_bound, points_in_e1, inner_points_num, outer_points_num)
+  select(L, N, p, method, Lower_bound, contain,contain_CS_scb, Upper_bound, points_in_e1, inner_points_num, outer_points_num) %>% 
+  pivot_longer(cols = c("contain_CS_scb", "contain"), names_to = "temp_method",
+               values_to = "contain") %>%
+  filter(contain!="") %>% 
+  mutate(method = 
+           case_when(
+             grepl("mean", method) & temp_method =="contain_CS_scb"~ "naive_SCI_mean",
+             grepl("y", method) & temp_method =="contain_CS_scb"~ "naive_SCI_y",
+             method == "naive_on_y" ~ "naive_CI_y",
+             method == "naive_on_mean" ~ "naive_CI_mean",
+             TRUE~method
+           ),
+         Upper_bound = ifelse(grepl("CI", method), NA, Upper_bound)
+  )
 
 # Optionally filter the data
 sim_result_sub <- sim_result # %>% filter(p == 6) # %>% filter(N != 800) # %>% filter(method == 'CS_on_mean')
@@ -122,22 +137,25 @@ t <- sim_result_sub %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
   mutate(across(where(is.numeric), round, 2)) %>% 
   mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
-         Method = ifelse(grepl("CS", method), "CS", "Naive"),
+         Method = case_when(grepl("CS", method)~"CS", 
+                            grepl("SCI", method)~"SCI",
+                            grepl("_CI_", method)~"CI",
+                            ),
          Count = `Points in IB`
          )
 
 
 ggplot(t, aes(x = factor(N), y = Coverage, fill = Method)) +
   geom_bar(stat = "identity", color="black", position = position_dodge(), width = 0.7) +
-  geom_line(aes(y = Count/70, group = Method), color = "dark green")+
-  geom_point(aes(y = Count/70), color = "dark green")+
+  geom_line(aes(y = Count/70, group = Method), color = "red")+
+  geom_point(aes(y = Count/70), color = "red")+
   geom_hline(aes(yintercept = TLB), data = t,  linetype = "dashed") +
   geom_errorbar(aes(ymin = Coverage, ymax = EUB), position = position_dodge(0.7), width = 0.25) +
-  scale_fill_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set2") +
   facet_nested(`Outcome Type`+TLB ~ p, labeller = labeller(p = label_both, TLB = label_both)) +
   labs(x = "Training Sample Size (n)", y = "Coverage Rate", fill = "Method") +
   theme(legend.position = "bottom",
-        axis.title.y.right = element_text(color = "dark green")
+        axis.title.y.right = element_text(color = "red")
         ) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1),
                      name = "Coverage Rate",
