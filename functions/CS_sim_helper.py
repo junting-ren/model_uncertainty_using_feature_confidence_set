@@ -1,5 +1,5 @@
-from .CS_toolbox import bootstrap,process_boot_samples
-from .confidence_set_func import prediction_confidence_set, naive_CS_method
+from CS_toolbox import bootstrap,process_boot_samples
+from confidence_set_func import prediction_confidence_set, naive_CS_method
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
