@@ -1,3 +1,4 @@
+# needs to run in the parent folder instead of the current folder using: python -m functions.main_sim
 import os
 import multiprocessing
 import numpy as np
@@ -10,8 +11,8 @@ from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 import torch
 # custom functions
-from CS_sim_helper import sim_CS_wrapper, generate_sim_data,check_overfitting, transform_X_poly,transform_X
-from models import NueralNet, logistic_regression
+from .CS_sim_helper import sim_CS_wrapper, generate_sim_data,check_overfitting, transform_X_poly,transform_X
+from .models import NueralNet, logistic_regression
 import argparse
 
 
