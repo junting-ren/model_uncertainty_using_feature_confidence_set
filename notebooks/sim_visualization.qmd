@@ -245,12 +245,14 @@ ggsave("./figures/logistic_sim_result.png", dpi = 300)
 
 ```{r fig.width=8, fig.height=8}
 # Load the CSV file
-sim_result_nerual <- read.csv('../nonlinear_result/neural_net_28072024.csv') %>% 
+sim_result_nerual <- read.csv('../nonlinear_result/neural_net_31122024_N=100.csv') %>% 
+  rbind(read.csv('../nonlinear_result/neural_net_31122024_N=200.csv')) %>% 
+  rbind(read.csv('../nonlinear_result/neural_net_31122024_N=400.csv')) %>% 
+  rbind(read.csv('../nonlinear_result/neural_net_31122024_N=800.csv')) %>% 
   mutate(Model = "Neural Network")
 # sim_result_xgboost <- read.csv('../nonlinear_result/xgboost_25072024.csv') %>% 
 #   mutate(Model = "XGBoost")
 sim_result_xgboost <- read.csv('../nonlinear_result/xgboost_30122024.csv') %>%
-  select(-boundary_point_ind, -closest_point_ind) %>% 
   mutate(Model = "XGBoost")
 
 # Select specific columns
