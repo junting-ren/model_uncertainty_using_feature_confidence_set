@@ -66,7 +66,7 @@ t <- sim_result_sub %>%
   group_by(p, TLB, N, Method) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
   mutate(across(where(is.numeric), round, 4)) %>% 
-  mutate(`Outcome Type` = ifelse(grepl("mean", Method), "Mean", "Observed Y"),
+  mutate(`Outcome Type` = ifelse(grepl("mean", Method), "Expected outcome", "Observed outcome"),
          Method = factor(Method, levels = c("Theorem 1", "Corollary 1"))
          ) 
 
@@ -136,7 +136,7 @@ t <- sim_result_sub %>%
   group_by(p, TLB, N, method) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
   mutate(across(where(is.numeric), round, 2)) %>% 
-  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
+  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Expected outcome", "Observed outcome"),
          Method = case_when(grepl("CS", method)~"CS", 
                             grepl("SCI", method)~"SCI",
                             grepl("_CI_", method)~"CI",
@@ -211,7 +211,7 @@ t <- sim_result_sub %>%
   group_by(p, TLB, N, method) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
   mutate(across(where(is.numeric), round, 2)) %>% 
-  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
+  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Expected outcome", "Observed outcome"),
          Method = case_when(grepl("CS", method)~"CS", 
                             grepl("SCI", method)~"SCI",
                             grepl("_CI_", method)~"CI",
@@ -288,7 +288,7 @@ t <- sim_result_sub %>%
   group_by(p, TLB, N, method, Model) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
   mutate(across(where(is.numeric), round, 2)) %>% 
-  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Mean", "Observed Y"),
+  mutate(`Outcome Type` = ifelse(grepl("mean", method), "Expected outcome", "Observed outcome"),
          Method = case_when(grepl("CS", method)~"CS", 
                             grepl("SCI", method)~"SCI",
                             grepl("_CI_", method)~"CI",

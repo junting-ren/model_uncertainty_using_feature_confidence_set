@@ -20,3 +20,5 @@ functions/__pycache__/
 /functions/non_linear_result
 /functions/old_result
 /notebooks/clean_data_biotech
+/notebooks/sim_visualization_files/libs
+notebooks/sim_visualization.html
